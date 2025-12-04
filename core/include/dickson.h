@@ -36,4 +36,50 @@ void dickson_free(DicksonContext* ctx);
  */
 void dickson_print_vx(DicksonContext* ctx);
 
+
+
+/**
+ * 模块化算术工具
+ */
+dickson_int dickson_mod_mul(dickson_int a, dickson_int b, dickson_int m);
+dickson_int dickson_mod_inverse(dickson_int a, dickson_int m);
+
+/**
+ * 多项式求值 (Horner's Method)
+ * 计算 V(x) mod m
+ */
+dickson_int dickson_eval_v(DicksonContext *ctx, dickson_int x, dickson_int m);
+
+/**
+ * 多项式导数求值
+ * 计算 V'(x) mod m
+ */
+dickson_int dickson_eval_v_prime(DicksonContext *ctx, dickson_int x, dickson_int m);
+
+/**
+ * 核心 Lifting 步骤 (单步)
+ * 输入当前层的 S_old 和当前模数 current_mod (p^h)
+ * 输出下一层的 S_new
+ */
+dickson_int dickson_lift_step(DicksonContext *ctx, dickson_int s_old, dickson_int update_factor, dickson_int current_p_pow);
+
+
+/**
+ * 完整 Lifting 流程
+ * 输入：初始种子 s_base (在 Fp 域内)
+ * 输出：提升到 Zpe 后的最终种子 S
+ */
+dickson_int dickson_lift_seed(DicksonContext *ctx, dickson_int s_base);
+
+
+// ...
+dickson_int dickson_lift_seed(DicksonContext *ctx, dickson_int s_base);
+
+/**
+ * 从 S 恢复 A
+ * 求解 A^2 = 2 - S mod p^e，初始值为 a_base
+ */
+dickson_int dickson_recover_a(DicksonContext *ctx, dickson_int s_final, dickson_int a_base);
+// ...
+
 #endif // DICKSON_H
