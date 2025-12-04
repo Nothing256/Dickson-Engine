@@ -360,39 +360,39 @@ void dickson_factorize_full(DicksonContext *ctx, dickson_int a_base_fp) {
     printf("[1] (x - 1)\n");
     printf("[2] (x + 1)\n");
     
+
     int count = 2;
     
     // 处理 x^2 + 1 (仅当 p = 4k + 3 时存在)
-    // 根据论文 Theorem 3.1
     if (ctx->p % 4 == 3) {
         printf("[%d] (x^2 + 1)\n", ++count);
     }
 
-    // 5. 递归生成并打印所有二次因子
+    // 5. 递归生成并打印所有二次因子对 (Pair)
     // Dickson Recurrence: D_i = A_1 * D_{i-1} - D_{i-2}
-    // D_0 = 2
-    // D_1 = A_1
     
     dickson_int d_prev = 2;
     dickson_int d_curr = a1_final;
     
-    // 输出第一项 (i=1)
-    printf("[%d] (x^2 + %lldx + 1)\n", ++count, (mod - d_curr) % mod); // 输出为 -Ax 形式往往更符合直觉，或者直接输出 +Ax
-    // 论文里写的是 x^2 - A_i x + 1，所以这里我们打印时如果不带符号，就是 + (mod-A) x
-    // 为了和 NTL 对齐，通常打印 x^2 + cx + 1
+    // --- 处理第一项 A_1 (i=1) ---
+    // Factor Pair: x^2 ± A_1 x + 1
+    // 1. x^2 - A_1 x + 1  -> Coeff: (mod - A_1)
+    printf("[%d] (x^2 + %lldx + 1)\n", ++count, (mod - d_curr) % mod);
+    // 2. x^2 + A_1 x + 1  -> Coeff: A_1
+    printf("[%d] (x^2 + %lldx + 1)\n", ++count, d_curr);
     
-    // 循环生成剩余项 i = 2 ... k
-    // 复杂度 O(k) = O(p) —— 极速！
+    // --- 循环生成剩余项 (i=2...k) ---
     for (int i = 2; i <= ctx->k; i++) {
         // 计算 D_i
         dickson_int term = dickson_mod_mul(a1_final, d_curr, mod);
         dickson_int d_next = (term - d_prev) % mod;
         if (d_next < 0) d_next += mod;
         
-        // 打印
-        // 注意：x^2 - A_i x + 1. 打印系数为 (mod - A_i)
-        dickson_int coeff = (mod - d_next) % mod;
-        printf("[%d] (x^2 + %lldx + 1)\n", ++count, coeff);
+        // 打印一对因子
+        // 1. x^2 - A_i x + 1
+        printf("[%d] (x^2 + %lldx + 1)\n", ++count, (mod - d_next) % mod);
+        // 2. x^2 + A_i x + 1
+        printf("[%d] (x^2 + %lldx + 1)\n", ++count, d_next);
         
         // 更新状态
         d_prev = d_curr;
@@ -401,4 +401,62 @@ void dickson_factorize_full(DicksonContext *ctx, dickson_int a_base_fp) {
     
     printf("========================================================\n");
     printf("Total Factors: %d\n", count);
+}
+
+
+
+// --- [NEW] 自动搜寻种子 ---
+
+// 快速幂: base^exp % mod
+static dickson_int mod_pow(dickson_int base, dickson_int exp, dickson_int mod) {
+    dickson_int res = 1;
+    base %= mod;
+    while (exp > 0) {
+        if (exp % 2 == 1) res = dickson_mod_mul(res, base, mod);
+        base = dickson_mod_mul(base, base, mod);
+        exp /= 2;
+    }
+    return res;
+}
+
+// 勒让德符号 (a/p)
+// 返回 1 (Residue), -1 (Non-residue), 0 (Divisible)
+static int legendre(dickson_int a, dickson_int p) {
+    dickson_int res = mod_pow(a, (p - 1) / 2, p);
+    if (res == p - 1) return -1;
+    return (int)res;
+}
+
+dickson_int dickson_find_random_seed(DicksonContext *ctx) {
+    // 简单的线性同余伪随机数生成器 (LCG)
+    // 为了可复现性，我们可以固定 seed，或者用 time
+    // 这里为了演示，每次调用 continuing from previous state 
+    // 但由于函数是独立的，我们简单用 p 做一些扰动
+    
+    dickson_int candidate = 0;
+    // 从 p/2 附近开始搜，或者随机
+    // 简单起见，我们在 [2, p-2] 之间随机尝试
+    
+    // 设定一个尝试上限，避免死循环（虽然概率极低）
+    for (int i = 0; i < 1000; i++) {
+        // 伪随机生成 a
+        candidate = (rand() % (ctx->p - 3)) + 2; 
+        
+        // 检查 x^2 - ax + 1 是否不可约
+        // 判别式 D = a^2 - 4
+        dickson_int D = (candidate * candidate) - 4;
+        while (D < 0) D += ctx->p;
+        D %= ctx->p;
+        
+        if (D == 0) continue; // 重根，跳过
+        
+        // 如果 D 是非二次剩余，则不可约
+        if (legendre(D, ctx->p) == -1) {
+            printf("Step 0: Found valid irreducible seed A^(1) = %lld (Discriminant %lld is non-residue)\n", candidate, D);
+            return candidate;
+        }
+    }
+    
+    fprintf(stderr, "Warning: Could not find irreducible seed in 1000 attempts.\n");
+    return 0; 
 }

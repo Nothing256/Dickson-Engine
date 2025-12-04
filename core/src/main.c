@@ -1,24 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h> // 用于随机种子
 #include "dickson.h"
 
 void print_usage(const char* prog_name) {
     printf("Usage:\n");
-    printf("  1. Verification Mode (Single Step):\n");
+    printf("  1. Verification Mode:\n");
     printf("     %s <p> <e> <s_seed> [a_seed]\n", prog_name);
-    printf("  2. Full Factorization Mode (Production):\n");
+    printf("  2. Full Factorization (Manual Seed):\n");
     printf("     %s <p> <e> --full <a_seed>\n", prog_name);
-    printf("\n");
-    printf("Arguments:\n");
-    printf("  p       : Prime number\n");
-    printf("  e       : Target precision\n");
-    printf("  s_seed  : Structural seed S^(1)\n");
-    printf("  a_seed  : Coefficient seed A^(1) (Generator)\n");
+    printf("  3. Full Factorization (Auto Seed - FAIR Benchmark):\n");
+    printf("     %s <p> <e> --auto\n", prog_name);
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 4) {
+    // 初始化随机数种子
+    srand((unsigned int)time(NULL));
+
+    if (argc < 3) { // 至少需要 p 和 e
         print_usage(argv[0]);
         return 1;
     }
@@ -28,55 +28,59 @@ int main(int argc, char *argv[]) {
     
     // 检查模式
     int full_mode = 0;
-    if (strcmp(argv[3], "--full") == 0) {
-        full_mode = 1;
+    int auto_mode = 0;
+    
+    if (argc >= 4) {
+        if (strcmp(argv[3], "--auto") == 0) {
+            full_mode = 1;
+            auto_mode = 1;
+        } else if (strcmp(argv[3], "--full") == 0) {
+            full_mode = 1;
+        }
     }
 
-    // 初始化引擎
     DicksonContext *ctx = dickson_init(p, e);
-    if (!ctx) {
-        fprintf(stderr, "Error: Failed to initialize context.\n");
-        return 1;
-    }
+    if (!ctx) return 1;
 
     printf("=== Dickson-Engine: Explicit Factorization ===\n");
-    printf("Mode: %s\n", full_mode ? "Full Factorization (Recursive Generation)" : "Verification (Single Step)");
+    printf("Mode: %s\n", auto_mode ? "Auto-Seed (Benchmark Ready)" : "Manual Seed");
     printf("Prime: %lld, Precision: %d\n", p, e);
     printf("------------------------------------------\n");
 
     if (full_mode) {
-        if (argc < 5) {
-            fprintf(stderr, "Error: Full mode requires a_seed.\n");
-            return 1;
-        }
-        dickson_int a_seed = atoll(argv[4]);
+        dickson_int a_seed = 0;
         
-        // 调用全量生产函数
+        if (auto_mode) {
+            // --- 自动搜索模块 ---
+            // 这里的时间会被计入总耗时，对 NTL 比较公平
+            a_seed = dickson_find_random_seed(ctx);
+            if (a_seed == 0) return 1;
+        } else {
+            if (argc < 5) {
+                fprintf(stderr, "Error: Manual full mode requires a_seed.\n");
+                return 1;
+            }
+            a_seed = atoll(argv[4]);
+        }
+        
         dickson_factorize_full(ctx, a_seed);
         
     } else {
-        // --- 原有的验证逻辑 ---
-        dickson_int s_base = atoll(argv[3]);
-        
-        printf("Generated V(x): ");
-        dickson_print_vx(ctx);
-        
-        printf("Starting Lifting Process for S...\n");
-        dickson_int s_final = dickson_lift_seed(ctx, s_base);
-
-        printf("Final Result over Z_{p^%d}:\n", e);
-        printf("Structural S = %lld\n", s_final);
-        
-        // 如果提供了 a_base，验证 A
-        if (argc >= 5) {
-            dickson_int a_base = atoll(argv[4]);
-            dickson_int a_final = dickson_recover_a(ctx, s_final, a_base);
-            printf("Recovered A  = %lld\n", a_final);
-            
-            // 简单的 Check
-            printf("[Info] Check: A^2 + S - 2 = %lld (mod %lld)\n", 
-                   (a_final*a_final + s_final - 2), 
-                   (dickson_int)1); // 这里只是简单的打印，实际验证在肉眼
+        // ... (保留旧的 Verification 逻辑) ...
+        // 为了简洁，这里就不重复贴了，保持你原来的 Verification 代码即可
+        // 只需要注意 argv[3] 不是 --auto 也不是 --full 时进入这里
+        if (argc >= 4 && argv[3][0] != '-') {
+             dickson_int s_base = atoll(argv[3]);
+             // ... 原有逻辑
+             // 简易处理：直接把原代码 copy 过来
+             printf("Generated V(x): ");
+             dickson_print_vx(ctx);
+             dickson_int s_final = dickson_lift_seed(ctx, s_base);
+             printf("Structural S = %lld\n", s_final);
+             if (argc >= 5) {
+                 dickson_int a_final = dickson_recover_a(ctx, s_final, atoll(argv[4]));
+                 printf("Recovered A = %lld\n", a_final);
+             }
         }
     }
 

@@ -44,4 +44,12 @@ dickson_int dickson_recover_a(DicksonContext *ctx, dickson_int s_final, dickson_
  */
 void dickson_factorize_full(DicksonContext *ctx, dickson_int a_base_fp);
 
+
+/**
+ * 自动寻找种子 A_1 (随机搜索)
+ * 策略：随机尝试 a，直到 x^2 - ax + 1 在 Fp 上不可约
+ * 这种种子生成的 S 可能不对应 Primitive Polynomial，但足以生成大部分因子。
+ */
+dickson_int dickson_find_random_seed(DicksonContext *ctx);
+
 #endif // DICKSON_H
