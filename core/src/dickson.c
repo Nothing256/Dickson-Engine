@@ -324,3 +324,81 @@ dickson_int dickson_recover_a(DicksonContext *ctx, dickson_int s_final, dickson_
     // 2. 调用通用的开方提升
     return dickson_lift_sqrt(ctx, val, a_base);
 }
+
+
+
+// --- [NEW] 全量因式分解实现 ---
+
+void dickson_factorize_full(DicksonContext *ctx, dickson_int a_base_fp) {
+    // 1. 准备阶段：从用户给的 Fp 种子 A 计算出结构种子 S
+    // S^(1) = 2 - (A^(1))^2 mod p
+    dickson_int a1_sq = (a_base_fp * a_base_fp) % ctx->p;
+    dickson_int s_base = (2 - a1_sq);
+    while (s_base < 0) s_base += ctx->p; // 确保正数
+    s_base %= ctx->p;
+
+    printf("Step 1: Initializing from seed A^(1)=%lld -> S^(1)=%lld\n", a_base_fp, s_base);
+
+    // 2. 核心提升 (Lifting S) - O(e*p)
+    // 这里调用我们之前写好的逻辑
+    dickson_int s_final = dickson_lift_seed(ctx, s_base);
+    
+    // 3. 恢复 A_1 (Recover A) - O(e)
+    // 使用牛顿迭代
+    dickson_int a1_final = dickson_recover_a(ctx, s_final, a_base_fp);
+    
+    // 计算最终的大模数 M = p^e
+    dickson_int mod = ctx->p;
+    for(int i=1; i<ctx->e; i++) mod *= ctx->p;
+
+    printf("Step 2: Lifted Generator A_1 = %lld (mod %lld)\n", a1_final, mod);
+    printf("Step 3: Generating all factors via Dickson Recurrence...\n");
+    printf("========================================================\n");
+    printf("Full Factorization of x^%lld - 1 over Z_{%lld}:\n", ctx->p + 1, mod);
+    
+    // 4. 打印固定因子
+    printf("[1] (x - 1)\n");
+    printf("[2] (x + 1)\n");
+    
+    int count = 2;
+    
+    // 处理 x^2 + 1 (仅当 p = 4k + 3 时存在)
+    // 根据论文 Theorem 3.1
+    if (ctx->p % 4 == 3) {
+        printf("[%d] (x^2 + 1)\n", ++count);
+    }
+
+    // 5. 递归生成并打印所有二次因子
+    // Dickson Recurrence: D_i = A_1 * D_{i-1} - D_{i-2}
+    // D_0 = 2
+    // D_1 = A_1
+    
+    dickson_int d_prev = 2;
+    dickson_int d_curr = a1_final;
+    
+    // 输出第一项 (i=1)
+    printf("[%d] (x^2 + %lldx + 1)\n", ++count, (mod - d_curr) % mod); // 输出为 -Ax 形式往往更符合直觉，或者直接输出 +Ax
+    // 论文里写的是 x^2 - A_i x + 1，所以这里我们打印时如果不带符号，就是 + (mod-A) x
+    // 为了和 NTL 对齐，通常打印 x^2 + cx + 1
+    
+    // 循环生成剩余项 i = 2 ... k
+    // 复杂度 O(k) = O(p) —— 极速！
+    for (int i = 2; i <= ctx->k; i++) {
+        // 计算 D_i
+        dickson_int term = dickson_mod_mul(a1_final, d_curr, mod);
+        dickson_int d_next = (term - d_prev) % mod;
+        if (d_next < 0) d_next += mod;
+        
+        // 打印
+        // 注意：x^2 - A_i x + 1. 打印系数为 (mod - A_i)
+        dickson_int coeff = (mod - d_next) % mod;
+        printf("[%d] (x^2 + %lldx + 1)\n", ++count, coeff);
+        
+        // 更新状态
+        d_prev = d_curr;
+        d_curr = d_next;
+    }
+    
+    printf("========================================================\n");
+    printf("Total Factors: %d\n", count);
+}
