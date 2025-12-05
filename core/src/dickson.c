@@ -440,7 +440,8 @@ dickson_int dickson_find_random_seed(DicksonContext *ctx) {
     // 设定尝试上限
     for (int r = 0; r < 2000; r++) { // 稍微增加尝试次数，因为条件更严了
         // 1. 伪随机生成 a
-        candidate = (rand() % (ctx->p - 3)) + 2; 
+        candidate = rand() % ctx->p;
+ 
         
         // 2. 判别式检查 (不可约性)
         dickson_int D = (candidate * candidate) - 4;
