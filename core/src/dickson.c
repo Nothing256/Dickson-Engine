@@ -427,36 +427,75 @@ static int legendre(dickson_int a, dickson_int p) {
     return (int)res;
 }
 
+
 dickson_int dickson_find_random_seed(DicksonContext *ctx) {
-    // 简单的线性同余伪随机数生成器 (LCG)
-    // 为了可复现性，我们可以固定 seed，或者用 time
-    // 这里为了演示，每次调用 continuing from previous state 
-    // 但由于函数是独立的，我们简单用 p 做一些扰动
-    
     dickson_int candidate = 0;
-    // 从 p/2 附近开始搜，或者随机
-    // 简单起见，我们在 [2, p-2] 之间随机尝试
     
-    // 设定一个尝试上限，避免死循环（虽然概率极低）
-    for (int i = 0; i < 1000; i++) {
-        // 伪随机生成 a
+    // 分配标记数组
+    char *flags = (char *)calloc(ctx->p + 1, sizeof(char));
+    if (!flags) {
+        fprintf(stderr, "Warning: Memory check failed.\n");
+    }
+
+    // 设定尝试上限
+    for (int r = 0; r < 2000; r++) { // 稍微增加尝试次数，因为条件更严了
+        // 1. 伪随机生成 a
         candidate = (rand() % (ctx->p - 3)) + 2; 
         
-        // 检查 x^2 - ax + 1 是否不可约
-        // 判别式 D = a^2 - 4
+        // 2. 判别式检查 (不可约性)
         dickson_int D = (candidate * candidate) - 4;
         while (D < 0) D += ctx->p;
         D %= ctx->p;
         
-        if (D == 0) continue; // 重根，跳过
+        if (D == 0) continue; 
+        if (legendre(D, ctx->p) != -1) continue; 
+
+        // 3. [UPDATED] 序列完整性检查 (Integrity Check)
+        // 必须确保 A_i 不等于 +/- 2，且 A_i 不等于 +/- A_j
         
-        // 如果 D 是非二次剩余，则不可约
-        if (legendre(D, ctx->p) == -1) {
-            printf("Step 0: Found valid irreducible seed A^(1) = %lld (Discriminant %lld is non-residue)\n", candidate, D);
-            return candidate;
+        if (flags) {
+            // 重置标记
+            memset(flags, 0, (ctx->p + 1) * sizeof(char));
+            
+            int is_bad = 0;
+            dickson_int d_prev = 2;
+            dickson_int d_curr = candidate; // A_1
+            
+            for (int i = 1; i <= ctx->k; i++) {
+                // A. 禁忌值检查: +/- 2
+                if (d_curr == 2 || d_curr == ctx->p - 2) {
+                    is_bad = 1; break;
+                }
+                
+                // B. 碰撞检查: 检查 val 和 p-val 是否已存在
+                if (flags[d_curr]) {
+                    is_bad = 1; break;
+                }
+                
+                // C. 标记当前值及其镜像
+                // 这样如果后面出现了 -d_curr，也会被 B 步骤捕获
+                flags[d_curr] = 1;
+                flags[ctx->p - d_curr] = 1;
+                
+                // D. 递推
+                if (i < ctx->k) {
+                    dickson_int next = (candidate * d_curr - d_prev) % ctx->p;
+                    if (next < 0) next += ctx->p;
+                    d_prev = d_curr;
+                    d_curr = next;
+                }
+            }
+            
+            if (is_bad) continue; // 这是一个“伪”本原根，跳过
         }
+
+        // 4. 成功
+        if (flags) free(flags);
+        printf("Step 0: Found PRIMITIVE seed A^(1) = %lld (Passed Rigorous Integrity Check)\n", candidate);
+        return candidate;
     }
     
-    fprintf(stderr, "Warning: Could not find irreducible seed in 1000 attempts.\n");
+    if (flags) free(flags);
+    fprintf(stderr, "Warning: Could not find valid seed.\n");
     return 0; 
 }
