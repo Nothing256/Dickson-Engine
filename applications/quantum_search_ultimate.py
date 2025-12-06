@@ -1,11 +1,10 @@
+import argparse 
 import re
 import random
 import itertools
 import multiprocessing
 import time
 import csv
-import os
-from math import gcd
 
 # --- 核心配置 ---
 P = 13
@@ -123,15 +122,61 @@ def parse_factors(filename):
     except FileNotFoundError: return []
     return factors
 
-def main():
+
+
+# --- 终极版 Worker ---
+def brute_force_worker(g_coeffs, k, start_idx, end_idx):
+    """全量搜索的工作进程"""
+    min_d = 9999
+    
+    # 将一维的索引 i 映射回 k 维的系数向量 m
+    # m_coeffs = []
+    # temp_i = i
+    # for _ in range(k):
+    #     m_coeffs.append(temp_i % MOD)
+    #     temp_i //= MOD
+    
+    # 上面的方法太慢了，直接用 itertools.product 配合 islice
+    # 但传递 islice 对象给多进程很麻烦
+    # 我们用最简单的数学方法：每个进程负责一个范围
+    
+    for i in range(start_idx, end_idx):
+        if i == 0: continue # 跳过全零码字
+        
+        # 将 i 转化为 MOD 进制的 k 位数，这就是信息系数 m
+        m = []
+        temp = i
+        for _ in range(k):
+            m.append(temp % MOD)
+            temp //= MOD
+
+        # 卷积
+        c_vec = [0] * N
+        for j, val in enumerate(m):
+            if val == 0: continue
+            for l, gv in enumerate(g_coeffs):
+                idx = (j + l) % N
+                c_vec[idx] = (c_vec[idx] + val * gv) % MOD
+        
+        w = fast_weight(c_vec)
+        if w < min_d: min_d = w
+        if min_d <= 2: return min_d # 剪枝
+
+    return min_d
+
+
+
+def main_unified(args):
     factors = parse_factors("my_factors.txt")
     if not factors: return
 
     num_cores = multiprocessing.cpu_count()
-    print(f"[*] Project Quantum Leap: Ultimate Search")
-    print(f"[*] Cores: {num_cores} | Target: EAQECC & LCD Candidates")
+    print(f"[*] Project Quantum Leap (Unified Engine)")
+    print(f"[*] Mode: '{args.mode.upper()}' | Cores: {num_cores}")
+    if args.mode == 'brute':
+        print(f"[*] Brute Force Target: k <= {args.k_max}")
     print("-" * 90)
-    print(f"{'ID':<4} | {'k':<3} | {'c':<3} | {'Mode':<10} | {'d_est':<6} | {'Samples':<10} | {'Quantum Params'}")
+    print(f"{'ID':<4} | {'k':<3} | {'c':<3} | {'Mode':<10} | {'d_val':<6} | {'Samples':<10} | {'Quantum Params'}")
     print("-" * 90)
 
     pool = multiprocessing.Pool(processes=num_cores)
@@ -139,70 +184,66 @@ def main():
 
     try:
         count = 0
-        # 遍历组合
         for r in range(1, len(factors)):
             for combo in itertools.combinations(factors, r):
                 g = Poly([1])
                 for f in combo: g = g * f
                 k = N - g.degree()
+                c = 0 # 理论上 c=0
                 
-                # 计算 c (Entanglement)
-                # 基于理论推导，这里 c=0，但保留接口
-                c = 0 
-                
-                # 智能策略：
-                # 如果 k <= 3，直接单核全量 (秒杀)
-                # 如果 k > 3，先普查 (Normal Sampling)
-                # 如果普查结果 d 很大 (比如 > 80)，触发狙击模式 (Sniper)
-                
-                space = MOD ** k
-                is_brute = space <= 200000
-                
-                final_d = 0
-                mode_str = ""
-                total_samples = 0
-                
-                if is_brute:
-                    mode_str = "BRUTE"
-                    final_d = 9999
-                    # 简易全量
-                    for m in itertools.product(range(MOD), repeat=k):
-                        if all(x==0 for x in m): continue
-                        c_vec = [0]*N
-                        for i, v in enumerate(m):
-                            if v==0: continue
-                            for j, gv in enumerate(g.coeffs):
-                                c_vec[(i+j)%N] = (c_vec[(i+j)%N]+v*gv)%MOD
-                        w = fast_weight(c_vec)
-                        if w < final_d: final_d = w
-                    total_samples = space
-                else:
-                    # 第一轮：普查
+                # --- 模式选择逻辑 ---
+                if args.mode == 'scan':
                     tasks = [(g.coeffs, k, NORMAL_SAMPLES, int(time.time()*1000)+i) for i in range(num_cores)]
                     res = pool.starmap(worker_task, tasks)
                     d_est = min(res)
                     
-                    # 评估是否值得狙击
-                    # 阈值：如果 d/n > 0.5 (距离很大)，说明可能是好码，值得深挖
-                    # 或者如果是 ID 33 那种明星 (k=10, d>100)
-                    threshold = 80 # 随意设定
+                    threshold = 80
                     if d_est > threshold:
                         mode_str = "SNIPER"
-                        tasks = [(g.coeffs, k, SNIPER_SAMPLES, int(time.time()*1000)+i+999) for i in range(num_cores)]
-                        res_sniper = pool.starmap(worker_task, tasks)
+                        sniper_tasks = [(g.coeffs, k, SNIPER_SAMPLES, int(time.time()*1000)+i+999) for i in range(num_cores)]
+                        res_sniper = pool.starmap(worker_task, sniper_tasks)
                         final_d = min(res_sniper)
                         total_samples = num_cores * SNIPER_SAMPLES
                     else:
                         mode_str = "SCAN"
                         final_d = d_est
                         total_samples = num_cores * NORMAL_SAMPLES
+                    
+                    n_phy = N * P
+                    q_params = f"[[{n_phy}, {k}, {final_d}, {c}]]"
+                    print(f"{count:<4} | {k:<3} | {c:<3} | {mode_str:<10} | {final_d:<6} | {'{:.0f}w'.format(total_samples/10000):<10} | {q_params}")
+                    results_log.append([count, k, c, final_d, q_params])
 
-                # 输出
-                n_phy = N * P
-                q_params = f"[[{n_phy}, {k}, {final_d}, {c}]]"
-                print(f"{count:<4} | {k:<3} | {c:<3} | {mode_str:<10} | {final_d:<6} | {total_samples/10000:.0f}w       | {q_params}")
-                
-                results_log.append([count, k, c, final_d, q_params])
+                elif args.mode == 'brute':
+                    if k > args.k_max:
+                        # print(f"\r{count:<4} | {k:<3} | {c:<3} | SKIPPING   | {'-':<6} | {'-':<10} | (k > k_max={args.k_max})", end="")
+                        # print() # 换行
+                        count += 1
+                        continue
+
+                    space_size = MOD ** k
+                    mode_str = f"BRUTE({num_cores})"
+                    print(f"[*] Attacking k={k} (ID: {count})... Space: {space_size:.2e}. Engaging cores.")
+                    
+                    chunk_size = space_size // num_cores
+                    tasks = []
+                    for i in range(num_cores):
+                        start = i * chunk_size
+                        end = (i + 1) * chunk_size if i != num_cores - 1 else space_size
+                        tasks.append((g.coeffs, k, start, end))
+                    
+                    start_time = time.time()
+                    results = pool.starmap(brute_force_worker, tasks)
+                    end_time = time.time()
+                    
+                    final_d = min(results)
+                    
+                    n_phy = N * P
+                    q_params = f"[[{n_phy}, {k}, {final_d}, {c}]]"
+                    duration = end_time - start_time
+                    print(f"{count:<4} | {k:<3} | {c:<3} | {mode_str:<10} | {final_d:<6} | {'{:.1e}'.format(space_size):<10} | {q_params}  (Time: {duration:.2f}s)")
+                    results_log.append([count, k, c, final_d, q_params])
+
                 count += 1
 
     except KeyboardInterrupt:
@@ -210,13 +251,31 @@ def main():
     finally:
         pool.close()
         pool.join()
-        
-        # 保存 CSV
-        with open("quantum_codes_final.csv", "w", newline="") as f:
+
+        output_filename = f"quantum_codes_{args.mode}.csv"
+        with open(output_filename, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["ID", "k", "c", "d_best", "Params"])
+            writer.writerow(["ID", "k", "c", "d_exact", "Params"])
             writer.writerows(results_log)
-        print(f"\n[*] Data saved to quantum_codes_final.csv")
+        print(f"\n[*] Data saved to {output_filename}")
+
+
 
 if __name__ == "__main__":
-    main()
+    # --- 命令行参数解析 ---
+    parser = argparse.ArgumentParser(description="Quantum Code Search Engine for Z_p^e.")
+    parser.add_argument(
+        '-m', '--mode', 
+        type=str, 
+        choices=['scan', 'brute'], 
+        default='scan', 
+        help="Search mode: 'scan' for massive sampling, 'brute' for brute-force."
+    )
+    parser.add_argument(
+        '--k_max', 
+        type=int, 
+        default=4, 
+        help="In 'brute' mode, the maximum k to search exhaustively."
+    )
+    
+    main_unified(parser.parse_args())
