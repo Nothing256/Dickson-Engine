@@ -40,6 +40,40 @@ make
 ./bin/dickson_cli 19 3 --auto
 ```
 
+## 🛠️ Applications: Quantum & LCD Code Construction
+
+We provide a powerful, multi-core Python engine to construct and verify codes over $\mathbb{Z}_{p^e}$.
+
+### 1. Quantum/LCD Code Search (`quantum_search.py`)
+
+This script generates cyclic codes from the factors found by the C++ engine, maps them to $\mathbb{F}_p$ via the Gray map, and evaluates their minimum distance $d$.
+
+**Features:**
+- **Two Modes**: 
+  - `scan`: Massive parallel sampling for high-dimension codes.
+  - `brute`: Exhaustive search (Brute-Force) for low-dimension codes (Exact $d$).
+- **Traceability**: Records the specific factor combination ("Gene") for every code.
+- **Auto-Sniper**: Automatically switches to intensive sampling when a high-quality candidate is found.
+
+**Usage:**
+
+```bash
+# Mode A: Massive Sampling (for exploration)
+python3 applications/quantum_search.py --mode scan
+
+# Mode B: Brute Force (for proving optimality, e.g., k <= 4)
+python3 applications/quantum_search.py --mode brute --k_max 4
+```
+
+### 2. Visualization (`visualizer_final.py`)
+
+Generates the "Skyline Plot" comparing our constructed codes against the theoretical Griesmer Bound.
+
+```bash
+python3 applications/visualizer_final.py
+```
+*Output: `lcd_codes_performance.png`*
+
 ## 📊 Benchmarks
 
 Our engine demonstrates significant performance advantages over standard libraries (NTL):
