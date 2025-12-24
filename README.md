@@ -4,6 +4,14 @@
 
 > A lightweight, deterministic engine implementing the explicit factorization algorithm described in our paper **"Explicit Factorization of x^(p+1)-1 over Zpe"**.
 
+[![Paper-Link-Placeholder](https://img.shields.io/badge/Paper-Link%20to%20be%20Added-blueviolet)](https://placeholder.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+<p align="center">
+  <img src="assets/Dickson-Engine-Banner.png" alt="Dickson-Engine Banner" width="800"/>
+</p>
+
+
 ## ✨ Features
 
 - **Structural Lifting**: Bypasses generic Hensel lifting using the $V(x)$ auxiliary polynomial.
@@ -91,6 +99,10 @@ Our engine demonstrates significant performance advantages over standard librari
 - [ ] **Parallelism**: Multi-threaded implementation using OpenMP/Pthreads to leverage the independent lifting property (The "Wolf Pack" strategy).
 - [ ] **Big Int**: GMP integration for cryptographic-scale integers ($p^{1000}+$).
 
-## 📄 License
+## Citation
 
-MIT
+If you find our work useful in your research, we would be grateful if you could cite our paper:
+
+```bibtex
+TBD
+```
