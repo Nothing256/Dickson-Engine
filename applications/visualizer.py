@@ -131,7 +131,7 @@ def main():
         plt.text(k, d_list[i] + offset, f"{d_list[i]}", ha='center', fontsize=9, fontweight='bold')
 
     # 标题与标签 (学术化)
-    plt.title(f'Optimal Classical LCD Codes over $\mathbb{{Z}}_{{13^2}}$ via Gray Map\n(Length $n={N_PHY}$, Alphabet size $q={Q}$)', fontsize=14)
+    plt.title(f'Optimal Classical LCD Codes over $\mathbb{{Z}}_{{169}}$ via Gray Map\n(Length $n={N_PHY}$, Alphabet size $q={Q}$)', fontsize=14)
     plt.xlabel('Dimension $k$', fontsize=12)
     plt.ylabel('Minimum Hamming Distance $d$', fontsize=12)
     plt.legend()
