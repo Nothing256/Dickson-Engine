@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
     Poly *seed = dickson_v2_find_primitive_seed(engine, n);
     if (seed) {
         Poly *lifted = dickson_v2_algebraic_lift(engine, seed);
-        dickson_v2_multidimensional_dispatch(engine, lifted, 10);
+        dickson_v2_multidimensional_dispatch(engine, lifted, n);
         poly_free(lifted);
         poly_free(seed);
     }
