@@ -19,7 +19,7 @@ void dickson_v2_free(DicksonEngineV2 *engine);
 // We lift the irreducible base polynomial G(X) from mod p to mod p^e 
 // using strictly polynomial arithmetic E(x) = Delta H(x) G(x) - Delta A X H(x).
 // Note: This bypasses all multivariate Jacobians.
-Poly* dickson_v2_algebraic_lift(DicksonEngineV2 *engine, Poly *G_base);
+Poly* dickson_v2_algebraic_lift(DicksonEngineV2 *engine, Poly *G_base, poly_int n_val);
 // Stage 3: Multi-dimensional Dickson Array Generation
 // Instead of D_i = A D_{i-1} - D_{i-2}, we use the general m-term recurrence (Newton-Girard array).
 poly_int* dickson_v2_multidimensional_dispatch(DicksonEngineV2 *engine, Poly *G_lifted, poly_int total_target_traces);

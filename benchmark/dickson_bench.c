@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
     double start = get_time();
     Poly *seed = dickson_v2_find_primitive_seed(engine, n);
     if (seed) {
-        Poly *lifted = dickson_v2_algebraic_lift(engine, seed);
+        Poly *lifted = dickson_v2_algebraic_lift(engine, seed, n);
         poly_int *T = dickson_v2_multidimensional_dispatch(engine, lifted, n);
         
         // --- Full Factorization Reconstruction ---

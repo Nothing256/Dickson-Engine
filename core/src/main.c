@@ -23,7 +23,8 @@ int main() {
     g_base->coeffs[0] = -1; // -1
     
     // Stage 1 & 2: Local Seed Evaluation natively extracting remainders
-    Poly *g_lifted = dickson_v2_algebraic_lift(engine, g_base);
+    poly_int n = 14; // Need to supply n for testing
+    Poly *g_lifted = dickson_v2_algebraic_lift(engine, g_base, n);
 
     // Stage 3: The True Multi-dimensional Space Propagator
     // We compute the first 10 traces dynamically from the base parameter symmetric combinations!
