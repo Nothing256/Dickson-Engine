@@ -1,4 +1,4 @@
-#include "../core/include/dickson_v2.h"
+#include "../core/include/dickson.h"
 #include <stdio.h>
 #include <stdlib.h>
 
