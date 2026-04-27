@@ -118,13 +118,13 @@ def run_verification():
                     G_expr += sign * e[k] * x**(m - k)
                     
                 G = sp.Poly(G_expr, x, domain=sp.GF(p))
-                total_product = (total_product * G).trunc(p) # mod p multiplication
+                total_product = total_product * G # mod p multiplication
                 
             # Verify if total_product == X^n - 1
             f_expr = x**n - 1
             f = sp.Poly(f_expr, x, domain=sp.GF(p))
             
-            diff = (total_product - f).trunc(p)
+            diff = total_product - f
             if diff.is_zero:
                 print(f"  ✅ PASS: ∏ G_s(X) * (X-1) exactly equals X^{n} - 1 over GF({p})!")
                 pass_count += 1
