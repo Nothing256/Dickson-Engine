@@ -78,9 +78,19 @@ def run_verification():
     
     pass_count = 0
     fail_count = 0
+    skip_count = 0
 
     for p, n, m in test_cases:
         print(f"\n[Testing] p={p}, n={n} (m={m})")
+        
+        # Fundamental algebraic limitation: Newton-Girard identities cannot reconstruct
+        # symmetric polynomials from power sums if the field characteristic p <= m,
+        # because the formula requires division by k, and k = p leads to division by zero.
+        if p <= m:
+            print(f"  ⏭️  SKIP: Characteristic p={p} <= m={m}. Newton-Girard is non-invertible over GF({p}).")
+            skip_count += 1
+            continue
+            
         cmd = [DICKSON_BIN, str(p), "1", str(n), "--random"]
         
         try:
@@ -96,26 +106,26 @@ def run_verification():
             all_factors_valid = True
             for i, coset in enumerate(cosets):
                 s = coset[0]
+                m_coset = len(coset)
                 # Extract MED traces for this coset: T_s, T_{2s}, ... T_{ms}
                 med_traces = {}
-                for k in range(1, m + 1):
+                for k in range(1, m_coset + 1):
                     idx = (s * k) % n
                     if idx == 0: idx = n
                     if idx not in traces:
-                        # For k*s == n, T_n = m. Because roots are n-th roots of unity, alpha^n = 1.
-                        # So sum_{j} (alpha^{n})^j = sum_{j} 1 = m.
-                        med_traces[k] = m
+                        # For k*s == n, T_n = m_coset
+                        med_traces[k] = m_coset
                     else:
                         med_traces[k] = traces[idx]
                         
                 # Newton Girard to find coefficients
-                e = newton_girard(med_traces, m, p)
+                e = newton_girard(med_traces, m_coset, p)
                 
                 # Construct polynomial G_s(X) = X^m - e_1 X^{m-1} + e_2 X^{m-2} ...
-                G_expr = x**m
-                for k in range(1, m + 1):
+                G_expr = x**m_coset
+                for k in range(1, m_coset + 1):
                     sign = -1 if k % 2 != 0 else 1
-                    G_expr += sign * e[k] * x**(m - k)
+                    G_expr += sign * e[k] * x**(m_coset - k)
                     
                 G = sp.Poly(G_expr, x, domain=sp.GF(p))
                 total_product = total_product * G # mod p multiplication
@@ -137,7 +147,7 @@ def run_verification():
             fail_count += 1
 
     print("\n=========================================================")
-    print(f"Verification Summary: {pass_count} Passed, {fail_count} Failed.")
+    print(f"Verification Summary: {pass_count} Passed, {fail_count} Failed, {skip_count} Skipped.")
 
 if __name__ == "__main__":
     run_verification()
