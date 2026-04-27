@@ -20,10 +20,12 @@ void dickson_v2_free(DicksonEngineV2 *engine);
 // using strictly polynomial arithmetic E(x) = Delta H(x) G(x) - Delta A X H(x).
 // Note: This bypasses all multivariate Jacobians.
 Poly* dickson_v2_algebraic_lift(DicksonEngineV2 *engine, Poly *G_base);
-
 // Stage 3: Multi-dimensional Dickson Array Generation
 // Instead of D_i = A D_{i-1} - D_{i-2}, we use the general m-term recurrence (Newton-Girard array).
-void dickson_v2_multidimensional_dispatch(DicksonEngineV2 *engine, Poly *G_lifted, poly_int total_target_traces);
+poly_int* dickson_v2_multidimensional_dispatch(DicksonEngineV2 *engine, Poly *G_lifted, poly_int total_target_traces);
+
+// Full Factorization Reconstruction (MED Partitioning & Newton-Girard)
+void dickson_v2_reconstruct_factors(DicksonEngineV2 *engine, poly_int *T, poly_int n);
 
 // --- Dual-Mode Engine: Auto-Seeder ---
 // Finds a guaranteed primitive seed matrix/polynomial G(X) over F_p of degree m using strict Integrity Checks.

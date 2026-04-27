@@ -61,7 +61,7 @@ Poly* dickson_v2_algebraic_lift(DicksonEngineV2 *engine, Poly *G_base) {
 }
 
 // The Power of Multidimensional Dickson Recurrences (Generalized Girard loops)
-void dickson_v2_multidimensional_dispatch(DicksonEngineV2 *engine, Poly *G_lifted, poly_int total_target_traces) {
+poly_int* dickson_v2_multidimensional_dispatch(DicksonEngineV2 *engine, Poly *G_lifted, poly_int total_target_traces) {
     printf("[Dickson Engine v2] Deploying Multi-dimensional Dickson Generator Array...\n");
     // Standard Girard-Newton Traces extraction array:
     // T_k = sum_{j=1}^m (-1)^{j-1} c_j T_{k-j}
@@ -116,7 +116,138 @@ void dickson_v2_multidimensional_dispatch(DicksonEngineV2 *engine, Poly *G_lifte
     }
 
     free(A);
-    free(T);
+    return T;
+}
+
+// Internal inverse helper
+static poly_int local_mod_inverse(poly_int a, poly_int m) {
+    poly_int t = 0, newt = 1;
+    poly_int r = m, newr = a;
+    while (newr != 0) {
+        poly_int quotient = r / newr;
+        poly_int temp = t - quotient * newt;
+        t = newt; newt = temp;
+        temp = r - quotient * newr;
+        r = newr; newr = temp;
+    }
+    if (r > 1) return 0;
+    if (t < 0) t += m;
+    return t;
+}
+
+// Full Factorization Reconstruction (MED Partitioning & Newton-Girard)
+void dickson_v2_reconstruct_factors(DicksonEngineV2 *engine, poly_int *T, poly_int n) {
+    printf("\n========================================================\n");
+    printf("Full Factorization (Reconstructed via MED & Newton-Girard):\n");
+    
+    // Fallback/Warning for small characteristics where Newton-Girard fails over F_p
+    // Note: If engine->e > 1, we are in Z_{p^e}, so p != 0, but division by p loses precision.
+    // We strictly warn if p <= engine->m.
+    if (engine->p <= engine->m && engine->e == 1) {
+        printf(" [WARNING] Characteristic p=%lld <= m=%d. Newton-Girard is non-invertible over GF(p).\n", engine->p, engine->m);
+        printf("           Factor coefficients cannot be uniquely reconstructed from traces.\n");
+        printf("========================================================\n\n");
+        return;
+    }
+    
+    int *visited = (int*)calloc(n, sizeof(int));
+    int factor_count = 0;
+    
+    poly_int p = engine->p;
+    poly_int final_mod = engine->final_mod;
+    int m = engine->m;
+    
+    // Add (x - 1) which corresponds to root 1 (index 0)
+    printf("[%d] (x - 1)\n", ++factor_count);
+    visited[0] = 1;
+    
+    for (int i = 1; i < n; i++) {
+        if (!visited[i]) {
+            // Find coset size
+            int m_coset = 0;
+            poly_int curr = i;
+            while (!visited[curr]) {
+                visited[curr] = 1;
+                curr = (curr * p) % n;
+                m_coset++;
+            }
+            
+            // Extract MED traces and scale
+            poly_int scale = m / m_coset;
+            poly_int scale_inv = local_mod_inverse(scale, final_mod);
+            if (scale_inv == 0) {
+                // If scale is not invertible, fallback (very rare unless p | scale)
+                printf("[%d] [Degenerate Coset] Failed to invert scale factor\n", ++factor_count);
+                continue;
+            }
+            
+            poly_int *med_traces = (poly_int*)calloc(m_coset + 1, sizeof(poly_int));
+            for (int k = 1; k <= m_coset; k++) {
+                poly_int idx = (i * k) % n;
+                if (idx == 0) idx = n;
+                
+                poly_int raw_trace = (idx == n) ? mod_pos(m, final_mod) : T[idx];
+                med_traces[k] = mod_pos(raw_trace * scale_inv, final_mod);
+            }
+            
+            // Newton-Girard
+            poly_int *e_sym = (poly_int*)calloc(m_coset + 1, sizeof(poly_int));
+            e_sym[0] = 1;
+            
+            int reconstruct_success = 1;
+            for (int k = 1; k <= m_coset; k++) {
+                poly_int sum_val = 0;
+                for (int j = 1; j <= k; j++) {
+                    poly_int term = mod_pos(e_sym[k - j] * med_traces[j], final_mod);
+                    if ((j - 1) % 2 != 0) term = -term;
+                    sum_val = mod_pos(sum_val + term, final_mod);
+                }
+                
+                poly_int k_inv = local_mod_inverse(k, final_mod);
+                if (k_inv == 0) {
+                    reconstruct_success = 0;
+                    break;
+                }
+                e_sym[k] = mod_pos(sum_val * k_inv, final_mod);
+            }
+            
+            if (reconstruct_success) {
+                printf("[%d] (x", ++factor_count);
+                if (m_coset > 1) printf("^%d", m_coset);
+                
+                for (int k = 1; k <= m_coset; k++) {
+                    poly_int coeff = e_sym[k];
+                    poly_int sign = (k % 2 != 0) ? -1 : 1;
+                    poly_int final_coeff = mod_pos(sign * coeff, final_mod);
+                    
+                    if (final_coeff != 0) {
+                        poly_int print_coeff = final_coeff;
+                        // Print negative numbers if they are shorter (e.g., -1 instead of p-1)
+                        if (print_coeff > final_mod / 2) print_coeff -= final_mod;
+                        
+                        if (print_coeff > 0) printf(" + ");
+                        else if (print_coeff < 0) { printf(" - "); print_coeff = -print_coeff; }
+                        
+                        if (print_coeff != 1 || k == m_coset) printf("%lld", print_coeff);
+                        
+                        int power = m_coset - k;
+                        if (power > 0) printf("x");
+                        if (power > 1) printf("^%d", power);
+                    }
+                }
+                printf(")\n");
+            } else {
+                printf("[%d] [Degenerate Coset] Newton-Girard failed to invert k\n", ++factor_count);
+            }
+            
+            free(med_traces);
+            free(e_sym);
+        }
+    }
+    
+    printf("Total Factors: %d\n", factor_count);
+    printf("------------------------------------------\n");
+    free(visited);
 }
 
 // --- Dual-Mode Engine: Auto-Seeder ---

@@ -19,7 +19,14 @@ int main(int argc, char** argv) {
     int e = atoi(argv[2]);
     poly_int n = atoll(argv[3]);
     
-    int m = 3; 
+    // Calculate m dynamically: it is exactly the size of the base MED cyclotomic coset
+    // i.e., the multiplicative order of p modulo n
+    int m = 1;
+    poly_int curr = p % n;
+    while (curr != 1 && m < n) {
+        curr = (curr * (p % n)) % n;
+        m++;
+    }
     
     DicksonEngineV2 *engine = dickson_v2_init(p, e, m);
     
@@ -27,7 +34,12 @@ int main(int argc, char** argv) {
     Poly *seed = dickson_v2_find_primitive_seed(engine, n);
     if (seed) {
         Poly *lifted = dickson_v2_algebraic_lift(engine, seed);
-        dickson_v2_multidimensional_dispatch(engine, lifted, n);
+        poly_int *T = dickson_v2_multidimensional_dispatch(engine, lifted, n);
+        
+        // --- Full Factorization Reconstruction ---
+        dickson_v2_reconstruct_factors(engine, T, n);
+        
+        free(T);
         poly_free(lifted);
         poly_free(seed);
     }
