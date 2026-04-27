@@ -28,6 +28,12 @@ Poly* poly_scalar_mul(const Poly *a, poly_int scaler, poly_int mod);
 // Returns R. Must ensure leading coeff of B is invertible mod (usually it's 1 for monic).
 Poly* poly_div_rem(const Poly *a, const Poly *b, Poly **q, poly_int mod);
 
+// Extended Euclidean Algorithm: Returns gcd(A, B) and optionally sets X and Y such that A*X + B*Y = gcd(A, B)
+Poly* poly_ext_gcd(const Poly *a, const Poly *b, Poly **x_out, Poly **y_out, poly_int p);
+
+// Multiplicative inverse of a polynomial A modulo M
+Poly* poly_mod_inverse(const Poly *a, const Poly *m, poly_int p);
+
 // Fast polynomial exponentiation: base^exp % mod_poly over Z_p
 Poly* poly_mod_pow(const Poly *base, poly_int exp, const Poly *mod_poly, poly_int p);
 

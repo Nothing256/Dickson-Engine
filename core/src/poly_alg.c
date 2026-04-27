@@ -114,7 +114,19 @@ Poly* poly_div_rem(const Poly *A, const Poly *B, Poly **Q_out, poly_int mod) {
     poly_int lead_B = B->coeffs[B->degree];
     poly_int lead_inv = mod_inverse(lead_B, mod);
     
+    if (B->degree == 0) {
+        for (int i = 0; i <= R->degree; i++) {
+            Q->coeffs[i] = mod_val(R->coeffs[i] * lead_inv, mod);
+            R->coeffs[i] = 0;
+        }
+        poly_trim(&R);
+        poly_trim(&Q);
+        if (Q_out) *Q_out = Q; else poly_free(Q);
+        return R;
+    }
+    
     while (R->degree >= B->degree) {
+        if (R->degree == 0 && R->coeffs[0] == 0) break;
         if (R->coeffs[R->degree] == 0) {
             poly_trim(&R);
             continue;
@@ -139,6 +151,75 @@ Poly* poly_div_rem(const Poly *A, const Poly *B, Poly **Q_out, poly_int mod) {
         poly_free(Q);
     }
     return R;
+}
+
+// Extended Euclidean Algorithm for polynomials over Z_p
+// Returns gcd(a, b). Sets x_out and y_out such that a*x + b*y = gcd(a, b)
+Poly* poly_ext_gcd(const Poly *a, const Poly *b, Poly **x_out, Poly **y_out, poly_int p) {
+    Poly *old_r = poly_copy(a);
+    Poly *r = poly_copy(b);
+    Poly *old_s = poly_create(0); old_s->coeffs[0] = 1;
+    Poly *s = poly_create(0);
+    Poly *old_t = poly_create(0);
+    Poly *t = poly_create(0); t->coeffs[0] = 1;
+
+    while (r->degree > 0 || r->coeffs[0] != 0) {
+        Poly *q = NULL;
+        Poly *rem = poly_div_rem(old_r, r, &q, p);
+        
+        poly_free(old_r);
+        old_r = r;
+        r = rem;
+
+        Poly *qs = poly_mul(q, s, p);
+        Poly *new_s = poly_sub(old_s, qs, p);
+        poly_free(old_s);
+        old_s = s;
+        s = new_s;
+        poly_free(qs);
+
+        Poly *qt = poly_mul(q, t, p);
+        Poly *new_t = poly_sub(old_t, qt, p);
+        poly_free(old_t);
+        old_t = t;
+        t = new_t;
+        poly_free(qt);
+
+        poly_free(q);
+    }
+
+    poly_free(r);
+    poly_free(s);
+    poly_free(t);
+
+    // Make monic
+    if (old_r->degree >= 0 && old_r->coeffs[old_r->degree] != 0) {
+        poly_int lead = old_r->coeffs[old_r->degree];
+        poly_int lead_inv = mod_inverse(lead, p);
+        Poly *monic_gcd = poly_scalar_mul(old_r, lead_inv, p);
+        poly_free(old_r);
+        old_r = monic_gcd;
+        
+        Poly *monic_s = poly_scalar_mul(old_s, lead_inv, p);
+        poly_free(old_s);
+        old_s = monic_s;
+        
+        Poly *monic_t = poly_scalar_mul(old_t, lead_inv, p);
+        poly_free(old_t);
+        old_t = monic_t;
+    }
+
+    if (x_out) *x_out = old_s; else poly_free(old_s);
+    if (y_out) *y_out = old_t; else poly_free(old_t);
+
+    return old_r;
+}
+
+Poly* poly_mod_inverse(const Poly *a, const Poly *m, poly_int p) {
+    Poly *x = NULL;
+    Poly *gcd = poly_ext_gcd(a, m, &x, NULL, p);
+    poly_free(gcd); // Assume a and m are coprime, so gcd is 1
+    return x;
 }
 
 // Fast polynomial exponentiation: base^exp % mod_poly over Z_p
