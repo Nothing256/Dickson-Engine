@@ -4,9 +4,9 @@ import re
 import matplotlib.pyplot as plt
 
 # --- Configurations ---
-NTL_BIN_V2 = "build/bin/ntl_bench_v2"
-DICKSON_BIN_V2 = "build/bin/dickson_bench_v2"
-RESULTS_DIR = "benchmark/results"
+NTL_BIN = "build/bin/ntl_bench"
+DICKSON_BIN = "build/bin/dickson_bench"
+RESULTS_DIR = "results"
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 def run_bench(executable, p, e=1, n=None, extra_args=None):
@@ -52,7 +52,7 @@ def run_triple_comparison():
         
         # 1. NTL (Cap elevated to 200 to capture the 60+ second explosion)
         if p <= 200: 
-            t_n = run_bench(NTL_BIN_V2, p, e=1)
+            t_n = run_bench(NTL_BIN, p, e=1)
             time_n_str = f"{t_n:.4f}s" if t_n is not None else "CRASH"
             if t_n is not None:
                 times_ntl.append(t_n)
@@ -61,11 +61,11 @@ def run_triple_comparison():
             time_n_str = "SKI (O(p^4))"
 
         # 2. Dickson V2 (Auto-Seeder)
-        t_d_auto = run_bench(DICKSON_BIN_V2, p, e=1, extra_args=["--random"])
+        t_d_auto = run_bench(DICKSON_BIN, p, e=1, extra_args=["--random"])
         time_d_auto_str = f"{t_d_auto:.6f}s" if t_d_auto is not None else "CRASH"
         
         # 3. Dickson V2 (Precomputed Oxygen Tank)
-        t_d_pre = run_bench(DICKSON_BIN_V2, p, e=1)
+        t_d_pre = run_bench(DICKSON_BIN, p, e=1)
         time_d_pre_str = f"{t_d_pre:.6f}s" if t_d_pre is not None else "CRASH/MISSING_SEED"
         
         if t_d_auto is not None and t_d_pre is not None:
@@ -94,7 +94,7 @@ def run_triple_comparison():
     print(f"\n[Success] Triple Comparison Graph saved to '{save_path}'")
 
 if __name__ == "__main__":
-    if not os.path.exists(NTL_BIN_V2) or not os.path.exists(DICKSON_BIN_V2):
+    if not os.path.exists(NTL_BIN) or not os.path.exists(DICKSON_BIN):
         print("Error: Binaries not found. Please compile them first via 'make' in build/.")
     else:
         run_triple_comparison()

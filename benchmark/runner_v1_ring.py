@@ -4,7 +4,7 @@ import re
 
 # --- Configuration ---
 DICKSON_CLI_V1 = "build/bin/dickson_cli"
-RESULTS_DIR = "benchmark/results"
+RESULTS_DIR = "results"
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 def run_v1(p, e):
@@ -33,7 +33,7 @@ def main():
     
     print(f"Testing precisions (e): {e_values}")
     
-    with open(os.path.join("benchmark", "log_v1_ring.txt"), "w") as log:
+    with open("log_v1_ring.txt", "w") as log:
         log.write(f"=== V1 Ring Lifting Benchmark (p={p}) ===\n")
         
         for e in e_values:
@@ -48,7 +48,7 @@ def main():
                 log.write(f"e={e:<4} | FAILED\n")
                 break
                 
-    print(f"V1 Benchmark complete. Log saved to benchmark/log_v1_ring.txt")
+    print(f"V1 Benchmark complete. Log saved to log_v1_ring.txt")
 
 if __name__ == "__main__":
     if not os.path.exists(DICKSON_CLI_V1):

@@ -3,12 +3,12 @@ import os
 import re
 
 # --- Configuration ---
-DICKSON_CLI_V2 = "build/bin/dickson_bench_v2"
-RESULTS_DIR = "benchmark/results"
+DICKSON_BIN = "build/bin/dickson_bench"
+RESULTS_DIR = "results"
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 def run_v2(p, e, n):
-    cmd = [DICKSON_CLI_V2, str(p), str(e), str(n), "--random"]
+    cmd = [DICKSON_BIN, str(p), str(e), str(n), "--random"]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         # Parse Time Elapsed
@@ -34,7 +34,7 @@ def main():
     
     print(f"Testing precisions (e): {e_values}")
     
-    with open(os.path.join("benchmark", "log_v2_ring.txt"), "w") as log:
+    with open("log_v2_ring.txt", "w") as log:
         log.write(f"=== V2 Ring Tracking Benchmark (p={p}) ===\n")
         
         for e in e_values:
@@ -49,10 +49,10 @@ def main():
                 log.write(f"e={e:<4} | FAILED\n")
                 break
                 
-    print(f"V2 Benchmark complete. Log saved to benchmark/log_v2_ring.txt")
+    print(f"V2 Benchmark complete. Log saved to log_v2_ring.txt")
 
 if __name__ == "__main__":
-    if not os.path.exists(DICKSON_CLI_V2):
+    if not os.path.exists(DICKSON_BIN):
         print("Please compile first: make")
     else:
         main()
