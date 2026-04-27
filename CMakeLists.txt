@@ -43,23 +43,15 @@ if(NTL_INCLUDE_DIR AND NTL_LIB)
     else()
         target_link_libraries(ntl_bench ${NTL_LIB})
     endif()
-
-    add_executable(ntl_bench_v2 benchmark/ntl_bench_v2.cpp)
-    target_include_directories(ntl_bench_v2 SYSTEM PRIVATE ${NTL_INCLUDE_DIR})
-    if(GMP_LIB)
-        target_link_libraries(ntl_bench_v2 ${NTL_LIB} ${GMP_LIB})
-    else()
-        target_link_libraries(ntl_bench_v2 ${NTL_LIB})
-    endif()
     
 else()
     message(WARNING "NTL library not found! Benchmark target 'ntl_bench' will not be built.")
     message(WARNING "Ubuntu users: sudo apt-get install libntl-dev")
 endif()
 
-# --- [NEW] 4. Dickson v2 Benchmark ---
-add_executable(dickson_bench_v2 benchmark/dickson_bench_v2.c)
-target_link_libraries(dickson_bench_v2 dickson_core)
+# --- [NEW] 4. Dickson Benchmark ---
+add_executable(dickson_bench benchmark/dickson_bench.c)
+target_link_libraries(dickson_bench dickson_core)
 
 # --- [NEW] 5. Oxygen Tank Generator ---
 add_executable(oxy_tank benchmark/oxygen_tank_generator.c)
