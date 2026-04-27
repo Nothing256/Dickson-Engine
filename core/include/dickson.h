@@ -1,55 +1,32 @@
-#ifndef DICKSON_H
-#define DICKSON_H
+#ifndef DICKSON_V2_H
+#define DICKSON_V2_H
 
-#include <stdint.h>
-#include <stdlib.h>
+#include "poly_alg.h"
 
-// 基础类型
-typedef long long dickson_int;
+// Dickson Engine v2.0 - Multidimensional Algebraic Processor
 
-/**
- * 核心结构体
- */
 typedef struct {
-    dickson_int p;     
-    int e;             
-    int k;             // k = floor(p/4)
-    int degree;        
-    dickson_int *coeffs; 
-} DicksonContext;
+    poly_int p;
+    int e;
+    int m; // Expansion Dimension (e.g., m=3 for X^3 - AX^2 + BX - 1)
+    poly_int final_mod; // p^e
+} DicksonEngineV2;
 
-// --- 初始化与销毁 ---
-DicksonContext* dickson_init(dickson_int p, int e);
-void dickson_free(DicksonContext* ctx);
-void dickson_print_vx(DicksonContext* ctx);
+DicksonEngineV2* dickson_v2_init(poly_int p, int e, int m);
+void dickson_v2_free(DicksonEngineV2 *engine);
 
-// --- 基础工具 ---
-dickson_int dickson_mod_mul(dickson_int a, dickson_int b, dickson_int m);
-dickson_int dickson_mod_inverse(dickson_int a, dickson_int m);
+// Stage 2: Algebraic Seed Lifting (Jacobian-Free)
+// We lift the irreducible base polynomial G(X) from mod p to mod p^e 
+// using strictly polynomial arithmetic E(x) = Delta H(x) G(x) - Delta A X H(x).
+// Note: This bypasses all multivariate Jacobians.
+Poly* dickson_v2_algebraic_lift(DicksonEngineV2 *engine, Poly *G_base);
 
-// --- 核心算法组件 ---
-dickson_int dickson_eval_v(DicksonContext *ctx, dickson_int x, dickson_int m);
-dickson_int dickson_eval_v_prime(DicksonContext *ctx, dickson_int x, dickson_int m);
-dickson_int dickson_lift_step(DicksonContext *ctx, dickson_int s_old, dickson_int update_factor, dickson_int current_p_pow);
-dickson_int dickson_lift_seed(DicksonContext *ctx, dickson_int s_base);
-dickson_int dickson_recover_a(DicksonContext *ctx, dickson_int s_final, dickson_int a_base);
+// Stage 3: Multi-dimensional Dickson Array Generation
+// Instead of D_i = A D_{i-1} - D_{i-2}, we use the general m-term recurrence (Newton-Girard array).
+void dickson_v2_multidimensional_dispatch(DicksonEngineV2 *engine, Poly *G_lifted, poly_int total_target_traces);
 
-// --- 全量生产模式 ---
-/**
- * 全量因式分解模式
- * 1. 自动计算 S_base = 2 - a_base^2
- * 2. 提升 S
- * 3. 恢复 A_1
- * 4. 递归生成所有 A_i 并打印因子
- */
-void dickson_factorize_full(DicksonContext *ctx, dickson_int a_base_fp);
+// --- Dual-Mode Engine: Auto-Seeder ---
+// Finds a guaranteed primitive seed matrix/polynomial G(X) over F_p of degree m using strict Integrity Checks.
+Poly* dickson_v2_find_primitive_seed(DicksonEngineV2 *engine, poly_int n_val);
 
-
-/**
- * 自动寻找种子 A_1 (随机搜索)
- * 策略：随机尝试 a，直到 x^2 - ax + 1 在 Fp 上不可约
- * 这种种子生成的 S 可能不对应 Primitive Polynomial，但足以生成大部分因子。
- */
-dickson_int dickson_find_random_seed(DicksonContext *ctx);
-
-#endif // DICKSON_H
+#endif
