@@ -12,12 +12,12 @@ double get_time() {
 
 int main(int argc, char** argv) {
     if (argc < 4) {
-        printf("Usage: %s <p> <n> <e>\n", argv[0]);
+        printf("Usage: %s <p> <e> <n>\n", argv[0]);
         return 1;
     }
     poly_int p = atoll(argv[1]);
-    poly_int n = atoll(argv[2]);
-    int e = atoi(argv[3]);
+    int e = atoi(argv[2]);
+    poly_int n = atoll(argv[3]);
     
     int m = 3; 
     
@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
     }
     double end = get_time();
     
-    printf("Time: %.6f\n", end - start);
+    printf("Time Elapsed : %.6f\n", end - start);
     
     dickson_v2_free(engine);
     return 0;

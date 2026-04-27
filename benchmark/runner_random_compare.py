@@ -52,7 +52,7 @@ def run_triple_comparison():
         
         # 1. NTL (Cap elevated to 200 to capture the 60+ second explosion)
         if p <= 200: 
-            t_n = run_bench(NTL_BIN, p, e=1)
+            t_n = run_bench(NTL_BIN, p, e=1, n=n_dimension)
             time_n_str = f"{t_n:.4f}s" if t_n is not None else "CRASH"
             if t_n is not None:
                 times_ntl.append(t_n)
@@ -61,11 +61,11 @@ def run_triple_comparison():
             time_n_str = "SKI (O(p^4))"
 
         # 2. Dickson V2 (Auto-Seeder)
-        t_d_auto = run_bench(DICKSON_BIN, p, e=1, extra_args=["--random"])
+        t_d_auto = run_bench(DICKSON_BIN, p, e=1, n=n_dimension, extra_args=["--random"])
         time_d_auto_str = f"{t_d_auto:.6f}s" if t_d_auto is not None else "CRASH"
         
         # 3. Dickson V2 (Precomputed Oxygen Tank)
-        t_d_pre = run_bench(DICKSON_BIN, p, e=1)
+        t_d_pre = run_bench(DICKSON_BIN, p, e=1, n=n_dimension)
         time_d_pre_str = f"{t_d_pre:.6f}s" if t_d_pre is not None else "CRASH/MISSING_SEED"
         
         if t_d_auto is not None and t_d_pre is not None:
