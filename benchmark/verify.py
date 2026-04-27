@@ -107,16 +107,19 @@ def run_verification():
             for i, coset in enumerate(cosets):
                 s = coset[0]
                 m_coset = len(coset)
+                scale = m // m_coset
+                scale_inv = pow(scale, p - 2, p)
+                
                 # Extract MED traces for this coset: T_s, T_{2s}, ... T_{ms}
                 med_traces = {}
                 for k in range(1, m_coset + 1):
                     idx = (s * k) % n
                     if idx == 0: idx = n
                     if idx not in traces:
-                        # For k*s == n, T_n = m_coset
-                        med_traces[k] = m_coset
+                        # For k*s == n, T_n = m
+                        med_traces[k] = (m * scale_inv) % p
                     else:
-                        med_traces[k] = traces[idx]
+                        med_traces[k] = (traces[idx] * scale_inv) % p
                         
                 # Newton Girard to find coefficients
                 e = newton_girard(med_traces, m_coset, p)
