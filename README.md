@@ -24,10 +24,11 @@ The Dickson Engine is built to scale homomorphic and post-quantum cryptographic 
 
 ## ✨ Features
 
-- **Structural Algebraic Lifting**: Bypasses generic Hensel lifting relying on Euclidean GCDs.
+- **Jacobian-Free Algebraic Lifting**: Lifts irreducible seed polynomials from $\mathbb{F}_p$ to $\mathbb{Z}_{p^e}$ using a structurally isolated remainder congruence $E(X) \equiv \Delta G(X) \cdot H(X) \pmod{G(X)}$, completely bypassing multivariable Jacobian matrix inversions.
 - **Trace Extraction (Power Sums)**: Reduces complex multi-dimensional roots to a pure 1-dimensional integer trace sequence using Newton-Girard identities.
 - **MED Coset Partitioning**: Extracts all irreducible factors by mathematically scaling and partitioning a single base trace sequence.
 - **O(log n) Auto-Seeding**: Dramatically drops the primitive seed search complexity from NTL's $O(p^4)$ to $O(m^2 \log n)$ via rapid cyclotomic norm checking.
+- **Full Factor Reconstruction**: Directly outputs the complete factorization of $X^n-1$ as explicit polynomial coefficients over $\mathbb{Z}_{p^e}$.
 - **Pure C99 Implementation**: Ultra-lightweight and highly optimized. No external math libraries required.
 
 ## 🚀 Quick Start
@@ -37,17 +38,56 @@ The Dickson Engine is built to scale homomorphic and post-quantum cryptographic 
 ```bash
 mkdir build && cd build
 cmake ..
-make
+make dickson_bench
 ```
 
 ### Usage
 
-The core benchmark binary executes the Auto-Seeder, dynamically generates traces, and outputs performance logs.
+The core benchmark binary executes the Auto-Seeder, dynamically generates traces, and outputs the full factorization of $X^n-1$ over $\mathbb{Z}_{p^e}$.
 
 ```bash
-# ./bin/dickson_bench <p> <e> <n> [options]
+# ./bin/dickson_bench <p> <e> <n> [--random]
+# Example: Factor X^14 - 1 over Z_{169} (p=13, e=2)
+./bin/dickson_bench 13 2 14 --random
+
+# Example: Factor X^39007 - 1 over GF(197)
 ./bin/dickson_bench 197 1 39007 --random
 ```
+
+**Parameters:**
+| Parameter | Description |
+|-----------|-------------|
+| `p` | Prime characteristic of the base field |
+| `e` | Precision exponent ($e=1$ for $\mathbb{F}_p$, $e \ge 2$ for $\mathbb{Z}_{p^e}$) |
+| `n` | Cyclotomic order ($X^n - 1$), must satisfy $\gcd(n, p) = 1$ |
+| `--random` | Use the runtime Auto-Seeder instead of precomputed seeds |
+
+## 🔧 Seed Management (Oxygen Tank)
+
+The engine features a **dual-mode** seeding architecture:
+
+1. **Precomputed Seeds** — A lookup table in `core/src/primes_seeds.c` provides pre-verified primitive irreducible polynomials for a curated set of primes. These enable instant startup with zero search overhead.
+2. **Runtime Auto-Seeder** (`--random`) — When a precomputed seed is unavailable (or `--random` is specified), the engine dynamically searches for a primitive seed using $O(\log n)$ cyclotomic integrity checks.
+
+### Expanding the Seed Table
+
+The precomputed seed table ships with coverage for a selected set of primes ($p \le 200$ and select large primes). To expand the table for your own research needs:
+
+```bash
+# 1. Build the Oxygen Tank Generator
+cd build && make oxy_tank
+
+# 2. Edit the max_p parameter in benchmark/oxygen_tank_generator.c
+#    (line 29: poly_int max_p = 200; -> your desired upper bound)
+
+# 3. Run the generator to regenerate primes_seeds.c
+cd benchmark && ../build/bin/oxy_tank
+
+# 4. Rebuild the engine to link the expanded seed table
+cd ../build && make dickson_bench
+```
+
+> **Tip:** On a powerful server, you can safely increase `max_p` to 10000+ to pre-generate a comprehensive seed arsenal. For primes not in the table, the `--random` Auto-Seeder will always work as a fallback.
 
 ## 🧪 Advanced Verification & Benchmarks
 
@@ -70,12 +110,30 @@ python3 benchmark/runner_random_compare.py
 ```
 *Renders a logarithmic performance graph in `benchmark/results/`, visually demonstrating the million-fold $O(p^4)$ vs $O(\log p)$ execution speedup.*
 
+## ⚠️ Known Limitations
+
+### Small Characteristic Singularity ($p \le m$)
+
+When the field characteristic $p$ is less than or equal to the coset dimension $m$ (the multiplicative order of $p$ modulo $n$), the Newton-Girard identities require division by integers $k$ where $1 \le k \le m$. If $p \mid k$, this division is non-invertible over $\mathbb{Z}_{p^e}$, creating an **algebraic singularity**.
+
+In such cases, the engine will:
+- ✅ Correctly generate the full trace sequence $T[1], \ldots, T[n]$
+- ✅ Correctly perform the Jacobian-Free Algebraic Lift to $\mathbb{Z}_{p^e}$
+- ❌ Report `[Degenerate Coset]` for factors whose reconstruction requires the singular division
+
+**Example:** $p=2, e=3, n=7$ ($m=3$). The engine successfully lifts the seed to $X^3+6X^2+5X+7$ over $\mathbb{Z}_8$, but cannot reconstruct the factor coefficients from traces because $\text{inv}(2) \pmod{8}$ does not exist.
+
+> This is a fundamental mathematical boundary, not a software bug. Resolving this singularity is an active area of investigation (see Roadmap).
+
 ## 🗺️ Roadmap
 
 - [x] **Core**: $m$-dimensional Generalized Recurrence Framework.
 - [x] **Seeding**: $O(\log n)$ cyclotomic integrity checks.
+- [x] **Lifting**: Jacobian-Free Algebraic Seed Lift from $\mathbb{F}_p$ to $\mathbb{Z}_{p^e}$.
+- [x] **Reconstruction**: Full factor output via MED + Newton-Girard.
 - [x] **Verification**: MED Coset Trace Scaling & Sympy validation.
 - [ ] **The "Abyss"**: Resolving the non-coprime theoretical singularity when $p \mid n$.
+- [ ] **Small Characteristic**: Hensel-lifting Newton-Girard into $\mathbb{Z}_{p^e}$ where $p^e > m$.
 - [ ] **Parallelism**: Multi-threaded trace extraction (The "Wolf Pack" strategy).
 
 ## 📄 License

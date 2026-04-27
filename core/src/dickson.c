@@ -96,6 +96,10 @@ Poly* dickson_v2_algebraic_lift(DicksonEngineV2 *engine, Poly *G_base, poly_int 
     poly_free(Xn_minus_1);
 
     printf("[Dickson Engine v2] Completed Homogeneous Algebraic Lift.\n");
+    printf("Lifted Polynomial in Z_%lld: ", current_mod);
+    poly_print(G_lifted);
+    printf("\n");
+    
     return G_lifted;
 }
 
