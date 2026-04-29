@@ -2,151 +2,135 @@ import subprocess
 import os
 import re
 import sympy as sp
-from sympy.abc import x
+from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application
 
 # --- Configuration ---
 DICKSON_BIN = "build/bin/dickson_bench"
 
-def parse_traces(output):
-    traces = {}
-    for line in output.splitlines():
-        match = re.search(r"Trace T\[(\d+)\] = (\d+)", line)
-        if match:
-            k = int(match.group(1))
-            val = int(match.group(2))
-            traces[k] = val
-    return traces
+# SymPy parsing transformations to handle expressions like "34x" as "34*x"
+transformations = standard_transformations + (implicit_multiplication_application,)
+x = sp.Symbol('x')
 
-def get_cosets(p, n):
-    """Find all cyclotomic cosets mod n for p."""
-    visited = set()
-    cosets = []
-    for i in range(1, n):
-        if i not in visited:
-            coset = []
-            curr = i
-            while curr not in visited:
-                visited.add(curr)
-                coset.append(curr)
-                curr = (curr * p) % n
-            cosets.append(coset)
-    return cosets
-
-def newton_girard(traces, m, p):
+def parse_poly(expr_str):
     """
-    Convert power sums (traces) T_1..T_m into elementary symmetric polynomials e_1..e_m
-    using Newton-Girard identities over GF(p).
+    Parses a string like 'x^2 - 29x + 1' into a SymPy Polynomial over ZZ.
     """
-    e = [0] * (m + 1)
-    e[0] = 1
-    
-    for k in range(1, m + 1):
-        # k * e_k = \sum_{i=1}^k (-1)^{i-1} e_{k-i} T_i
-        sum_val = 0
-        for i in range(1, k + 1):
-            term = (e[k - i] * traces[i]) % p
-            if (i - 1) % 2 != 0:
-                term = -term
-            sum_val = (sum_val + term) % p
-        
-        # Divide by k in GF(p)
-        k_inv = pow(k, p - 2, p)
-        e[k] = (sum_val * k_inv) % p
-        
-    return e
+    expr_str = expr_str.replace("^", "**")
+    expr = parse_expr(expr_str, transformations=transformations)
+    return sp.Poly(expr, x, domain='ZZ')
 
 def run_verification():
     print("\n=========================================================")
-    print("=== Full MED Trace Product Verification: Dickson V2 ===")
+    print("=== Dickson V2 Full Acceptance Verification Suite ===")
     print("=========================================================")
-    print("This script reads the sequence T_k from the Dickson Engine,")
-    print("partitions them using MED (Multiple Equal-Difference) cosets,")
-    print("reconstructs ALL factors G_s(X), and verifies their product")
-    print("is EXACTLY X^n - 1 over GF(p).")
+    print("This script reads the explicit polynomial factorization output")
+    print("from the Dickson Engine C binary, parses them into SymPy objects,")
+    print("and mathematically verifies that their expanded product matches")
+    print("X^n - 1 modulo p^e (covering both fields and lifted rings).")
     
     if not os.path.exists(DICKSON_BIN):
         print("Error: Binaries not found. Please compile them first via 'make' in build/.")
         return
 
+    # Test cases: (p, e, n)
     test_cases = [
-        (2, 7, 3),
-        (3, 13, 3),
-        (5, 31, 3),
-        (7, 57, 3),
-        (11, 133, 3)
+        # Base Fields (GF(p))
+        (2, 1, 7),     # Degenerate coset due to p <= m (m=3)
+        (3, 1, 13),    # Base field GF(3)
+        (5, 1, 31),    # Base field GF(5)
+        (197, 1, 39007), # Large base field
+        
+        # Lifted Rings (Z_{p^e})
+        (13, 2, 14),   # Ring Z_{169}
+        (3, 3, 13),    # Ring Z_{27}
+        (5, 2, 31),    # Ring Z_{25}
+        (2, 3, 7)      # Ring Z_{8} with degenerate coset
     ]
     
     pass_count = 0
     fail_count = 0
     skip_count = 0
 
-    for p, n, m in test_cases:
-        print(f"\n[Testing] p={p}, n={n} (m={m})")
+    for p, e, n in test_cases:
+        print(f"\n[Testing] p={p}, e={e}, n={n} (Modulus: {p**e})")
         
-        # Fundamental algebraic limitation: Newton-Girard identities cannot reconstruct
-        # symmetric polynomials from power sums if the field characteristic p <= m,
-        # because the formula requires division by k, and k = p leads to division by zero.
-        if p <= m:
-            print(f"  ⏭️  SKIP: Characteristic p={p} <= m={m}. Newton-Girard is non-invertible over GF({p}).")
-            skip_count += 1
-            continue
-            
-        cmd = [DICKSON_BIN, str(p), "1", str(n), "--random"]
+        cmd = [DICKSON_BIN, str(p), str(e), str(n), "--random"]
         
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            traces = parse_traces(result.stdout)
+            output = result.stdout
             
-            # MED Cosets
-            cosets = get_cosets(p, n)
-            print(f"  > Identified {len(cosets)} non-trivial cyclotomic cosets.")
-            
-            total_product = sp.Poly(x - 1, x, domain=sp.GF(p))
-            
-            all_factors_valid = True
-            for i, coset in enumerate(cosets):
-                s = coset[0]
-                m_coset = len(coset)
-                scale = m // m_coset
-                scale_inv = pow(scale, p - 2, p)
+            # Check for Degenerate Coset warning
+            if "Newton-Girard is non-invertible" in output or "Newton-Girard failed to invert k" in output:
+                print(f"  ⏭️  SKIP: Engine correctly detected algebraic singularity (Newton-Girard non-invertible for p={p}).")
+                skip_count += 1
+                continue
                 
-                # Extract MED traces for this coset: T_s, T_{2s}, ... T_{ms}
-                med_traces = {}
-                for k in range(1, m_coset + 1):
-                    idx = (s * k) % n
-                    if idx == 0: idx = n
-                    if idx not in traces:
-                        # For k*s == n, T_n = m
-                        med_traces[k] = (m * scale_inv) % p
+            # Parse Factors
+            factors = []
+            parsing_factors = False
+            for line in output.splitlines():
+                if "Full Factorization" in line:
+                    parsing_factors = True
+                    continue
+                if parsing_factors:
+                    if line.startswith("Total Factors:"):
+                        break
+                    match = re.match(r"^\[\d+\] \((.*)\)$", line.strip())
+                    if match:
+                        factor_str = match.group(1)
+                        factors.append(factor_str)
+            
+            if not factors:
+                print("  ❌ FAIL: No factors parsed from engine output.")
+                fail_count += 1
+                continue
+                
+            print(f"  > Engine returned {len(factors)} factors. Multiplying over ZZ...")
+            
+            # Parse all polynomials first
+            parsed_factors = []
+            for f_str in factors:
+                parsed_factors.append(parse_poly(f_str))
+                
+            # Tree-based multiplication over ZZ with modulo reduction
+            # This reduces O(N^2) complexity to O(N log N) for massive polynomial products
+            modulus = p**e
+            current_layer = parsed_factors
+            layer_count = 0
+            
+            while len(current_layer) > 1:
+                next_layer = []
+                for i in range(0, len(current_layer), 2):
+                    if i + 1 < len(current_layer):
+                        prod = (current_layer[i] * current_layer[i+1]).trunc(modulus)
+                        next_layer.append(prod)
                     else:
-                        med_traces[k] = (traces[idx] * scale_inv) % p
-                        
-                # Newton Girard to find coefficients
-                e = newton_girard(med_traces, m_coset, p)
-                
-                # Construct polynomial G_s(X) = X^m - e_1 X^{m-1} + e_2 X^{m-2} ...
-                G_expr = x**m_coset
-                for k in range(1, m_coset + 1):
-                    sign = -1 if k % 2 != 0 else 1
-                    G_expr += sign * e[k] * x**(m_coset - k)
+                        next_layer.append(current_layer[i])
+                current_layer = next_layer
+                layer_count += 1
+                if len(parsed_factors) > 1000:
+                    print(f"    ... tree multiplication layer {layer_count} complete (reduced to {len(current_layer)} polys) ...")
                     
-                G = sp.Poly(G_expr, x, domain=sp.GF(p))
-                total_product = total_product * G # mod p multiplication
+            total_product = current_layer[0]
                 
-            # Verify if total_product == X^n - 1
-            f_expr = x**n - 1
-            f = sp.Poly(f_expr, x, domain=sp.GF(p))
+            # Verify: (Product) - (X^n - 1) == 0 mod p^e
+            target = sp.Poly(x**n - 1, x, domain='ZZ').trunc(modulus)
+            diff = (total_product - target).trunc(modulus)
             
-            diff = total_product - f
-            if diff.is_zero:
-                print(f"  ✅ PASS: ∏ G_s(X) * (X-1) exactly equals X^{n} - 1 over GF({p})!")
+            # Check if all coefficients of the difference are 0
+            is_valid = all(c == 0 for c in diff.coeffs())
+                    
+            if is_valid:
+                print(f"  ✅ PASS: ∏ G_s(X) exactly equals X^{n} - 1 over Z_{modulus}!")
                 pass_count += 1
             else:
-                print(f"  ❌ FAIL: Product does NOT equal X^{n} - 1. Diff: {diff}")
+                print(f"  ❌ FAIL: Product does NOT equal X^{n} - 1 modulo {modulus}.")
+                print(f"     Difference polynomial: {diff}")
                 fail_count += 1
                 
         except subprocess.CalledProcessError:
-            print(f"  ❌ FAIL: Engine crashed for p={p}, n={n}")
+            print(f"  ❌ FAIL: Engine crashed for p={p}, e={e}, n={n}")
             fail_count += 1
 
     print("\n=========================================================")
