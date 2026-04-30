@@ -28,7 +28,9 @@ The Dickson Engine is built to scale homomorphic and post-quantum cryptographic 
 - **Trace Extraction (Power Sums)**: Reduces complex multi-dimensional roots to a pure 1-dimensional integer trace sequence using Newton-Girard identities.
 - **MED Coset Partitioning**: Extracts all irreducible factors by mathematically scaling and partitioning a single base trace sequence.
 - **O(log n) Auto-Seeding**: Dramatically drops the primitive seed search complexity from NTL's $O(p^4)$ to $O(m^2 \log n)$ via rapid cyclotomic norm checking.
-- **Full Factor Reconstruction**: Directly outputs the complete factorization of $X^n-1$ as explicit polynomial coefficients over $\mathbb{Z}_{p^e}$.
+- **Dual-Track Coefficient Reconstruction**: 
+  - **Hyper-Track (Trace + Newton-Girard)**: $O(n \cdot m)$ complexity for standard fields where $p > m$.
+  - **Armor-Track (Division-Free Quotient Ring Matrix Elimination)**: $O(n \cdot m \log n + n \cdot m^2)$ complexity for small characteristic singularities ($p \le m$), ensuring $100\%$ robustness without zero-divisor failures.
 - **Pure C99 Implementation**: Ultra-lightweight and highly optimized. No external math libraries required.
 
 ## 🚀 Quick Start
@@ -110,22 +112,7 @@ python3 benchmark/runner_random_compare.py
 ```
 *Renders a logarithmic performance graph in `benchmark/results/`, visually demonstrating the million-fold $O(p^4)$ vs $O(\log p)$ execution speedup.*
 
-## ⚠️ Known Limitations
 
-### Small Characteristic Singularity ($p \le m$)
-
-When the field characteristic $p$ is less than or equal to the coset dimension $m$ (the multiplicative order of $p$ modulo $n$), the Newton-Girard identities require division by integers $k$ where $1 \le k \le m$. If $p \mid k$, this division is non-invertible over $\mathbb{Z}_{p^e}$, creating an **algebraic singularity**.
-
-In such cases, the engine will:
-- ✅ Correctly generate the full trace sequence $T[1], \ldots, T[n]$
-- ✅ Correctly perform the Jacobian-Free Algebraic Lift to $\mathbb{Z}_{p^e}$
-- ❌ Report `[Degenerate Coset]` for factors whose reconstruction requires the singular division
-
-**Example:** $p=2, e=3, n=7$ ($m=3$). The engine successfully lifts the seed to $X^3+6X^2+5X+7$ over $\mathbb{Z}_8$, but cannot reconstruct the factor coefficients from traces because $\text{inv}(2) \pmod{8}$ does not exist.
-
-> This is a fundamental mathematical boundary, not a software bug. Resolving this singularity is an active area of investigation (see Roadmap).
-
-## 🗺️ Roadmap
 
 - [x] **Core**: $m$-dimensional Generalized Recurrence Framework.
 - [x] **Seeding**: $O(\log n)$ cyclotomic integrity checks.
@@ -133,7 +120,7 @@ In such cases, the engine will:
 - [x] **Reconstruction**: Full factor output via MED + Newton-Girard.
 - [x] **Verification**: MED Coset Trace Scaling & Sympy validation.
 - [ ] **The "Abyss"**: Resolving the non-coprime theoretical singularity when $p \mid n$.
-- [ ] **Small Characteristic**: Hensel-lifting Newton-Girard into $\mathbb{Z}_{p^e}$ where $p^e > m$.
+- [x] **Small Characteristic**: Division-Free Multivariate Generation (Matrix-based) bypassing Newton-Girard singularities when $p \le m$.
 - [ ] **Parallelism**: Multi-threaded trace extraction (The "Wolf Pack" strategy).
 
 ## 📄 License
