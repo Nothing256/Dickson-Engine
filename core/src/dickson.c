@@ -178,18 +178,117 @@ static poly_int local_mod_inverse(poly_int a, poly_int m) {
     return t;
 }
 
+// Fallback: Division-Free Multivariate Dickson Polynomial Generation using Quotient Ring Minimal Polynomials
+static void fallback_multivariate_dickson_reconstruct(DicksonEngineV2 *engine, poly_int n, Poly *G_lifted) {
+    printf(" [WARNING] Characteristic p=%lld <= m=%d. Newton-Girard is non-invertible.\n", engine->p, engine->m);
+    printf("           Triggering Division-Free Multivariate Dickson Generation (Matrix-based)...\n");
+    printf("========================================================\n\n");
+    
+    int factor_count = 0;
+    int *visited = (int*)calloc(n, sizeof(int));
+    poly_int p = engine->p;
+    poly_int final_mod = engine->final_mod;
+    int m = engine->m;
+    
+    // Add (x - 1)
+    printf("[%d] (x - 1)\n", ++factor_count);
+    visited[0] = 1;
+    
+    // Use the lifted seed polynomial
+    Poly *seed = poly_copy(G_lifted);
+    
+    for (int i = 1; i < n; i++) {
+        if (!visited[i]) {
+            int m_coset = 0;
+            poly_int curr = i;
+            while (!visited[curr]) {
+                visited[curr] = 1;
+                curr = (curr * p) % n;
+                m_coset++;
+            }
+            
+            // We want the minimal polynomial of X^i mod seed(X)
+            Poly *base_X = poly_create(1);
+            base_X->coeffs[1] = 1;
+            Poly *beta = poly_mod_pow(base_X, i, seed, final_mod);
+            poly_free(base_X);
+            
+            // Compute powers: 1, beta, beta^2, ..., beta^{m_coset}
+            Poly **powers = (Poly**)malloc((m_coset + 1) * sizeof(Poly*));
+            powers[0] = poly_create(0);
+            powers[0]->coeffs[0] = 1;
+            for (int k = 1; k <= m_coset; k++) {
+                Poly *temp = poly_mul(powers[k - 1], beta, final_mod);
+                powers[k] = poly_div_rem(temp, seed, NULL, final_mod);
+                poly_free(temp);
+            }
+            
+            // Build linear system M * c = -powers[m_coset]
+            // We expect the degree of relations to be bounded by m
+            poly_int **matrix = (poly_int**)malloc(m * sizeof(poly_int*));
+            for (int r = 0; r < m; r++) {
+                matrix[r] = (poly_int*)calloc(m_coset + 1, sizeof(poly_int));
+                for (int c = 0; c < m_coset; c++) {
+                    if (r <= powers[c]->degree) matrix[r][c] = powers[c]->coeffs[r];
+                }
+                // Target column
+                if (r <= powers[m_coset]->degree) {
+                    matrix[r][m_coset] = mod_pos(-powers[m_coset]->coeffs[r], final_mod);
+                }
+            }
+            
+            poly_int *solution = (poly_int*)calloc(m_coset, sizeof(poly_int));
+            int success = solve_linear_system(matrix, m, m_coset + 1, final_mod, p, solution);
+            
+            if (success) {
+                printf("[%d] (x", ++factor_count);
+                if (m_coset > 1) printf("^%d", m_coset);
+                
+                for (int k = 1; k <= m_coset; k++) {
+                    poly_int final_coeff = solution[m_coset - k];
+                    
+                    if (final_coeff != 0) {
+                        poly_int print_coeff = final_coeff;
+                        if (print_coeff > final_mod / 2) print_coeff -= final_mod;
+                        
+                        if (print_coeff > 0) printf(" + ");
+                        else if (print_coeff < 0) { printf(" - "); print_coeff = -print_coeff; }
+                        
+                        if (print_coeff != 1 || k == m_coset) printf("%lld", print_coeff);
+                        
+                        int power = m_coset - k;
+                        if (power > 0) printf("x");
+                        if (power > 1) printf("^%d", power);
+                    }
+                }
+                printf(")\n");
+            } else {
+                printf("[%d] [Degenerate Coset] Matrix singularity in Multivariate Generation\n", ++factor_count);
+            }
+            
+            // Cleanup
+            for (int r = 0; r < m; r++) free(matrix[r]);
+            free(matrix);
+            free(solution);
+            for (int k = 0; k <= m_coset; k++) poly_free(powers[k]);
+            free(powers);
+            poly_free(beta);
+        }
+    }
+    
+    poly_free(seed);
+    free(visited);
+    printf("Total Factors: %d\n", factor_count);
+    printf("------------------------------------------\n");
+}
+
 // Full Factorization Reconstruction (MED Partitioning & Newton-Girard)
-void dickson_v2_reconstruct_factors(DicksonEngineV2 *engine, poly_int *T, poly_int n) {
+void dickson_v2_reconstruct_factors(DicksonEngineV2 *engine, poly_int *T, poly_int n, Poly *G_lifted) {
     printf("\n========================================================\n");
     printf("Full Factorization (Reconstructed via MED & Newton-Girard):\n");
     
-    // Fallback/Warning for small characteristics where Newton-Girard fails over F_p
-    // Note: If engine->e > 1, we are in Z_{p^e}, so p != 0, but division by p loses precision.
-    // We strictly warn if p <= engine->m.
-    if (engine->p <= engine->m && engine->e == 1) {
-        printf(" [WARNING] Characteristic p=%lld <= m=%d. Newton-Girard is non-invertible over GF(p).\n", engine->p, engine->m);
-        printf("           Factor coefficients cannot be uniquely reconstructed from traces.\n");
-        printf("========================================================\n\n");
+    if (engine->p <= engine->m) {
+        fallback_multivariate_dickson_reconstruct(engine, n, G_lifted);
         return;
     }
     

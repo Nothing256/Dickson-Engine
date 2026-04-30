@@ -37,6 +37,9 @@ Poly* poly_mod_inverse(const Poly *a, const Poly *m, poly_int p);
 // Fast polynomial exponentiation: base^exp % mod_poly over Z_p
 Poly* poly_mod_pow(const Poly *base, poly_int exp, const Poly *mod_poly, poly_int p);
 
+// Solve linear system over Z_{p^e}
+int solve_linear_system(poly_int **matrix, int rows, int cols, poly_int mod, poly_int p, poly_int *solution);
+
 void poly_print(const Poly *p);
 
 #endif // POLY_ALG_H

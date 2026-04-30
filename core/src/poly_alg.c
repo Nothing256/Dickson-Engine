@@ -251,6 +251,65 @@ Poly* poly_mod_pow(const Poly *base, poly_int exp, const Poly *mod_poly, poly_in
     return res;
 }
 
+// Gaussian elimination over Z_{p^e}. 
+// matrix is size rows x cols.
+// We assume it's an augmented matrix where we want to solve Ax = b, so cols = rows + 1.
+// mod is p^e, p is the prime.
+int solve_linear_system(poly_int **matrix, int rows, int cols, poly_int mod, poly_int p, poly_int *solution) {
+    for (int i = 0; i < rows; i++) {
+        // Find pivot: must be coprime to p to be invertible
+        int pivot_row = i;
+        int found = 0;
+        for (int r = i; r < rows; r++) {
+            if (matrix[r][i] % p != 0) {
+                pivot_row = r;
+                found = 1;
+                break;
+            }
+        }
+        
+        if (!found) {
+            // Cannot find an invertible pivot (matrix is singular over Z_p)
+            return 0;
+        }
+        
+        // Swap rows
+        if (pivot_row != i) {
+            for (int j = i; j < cols; j++) {
+                poly_int temp = matrix[i][j];
+                matrix[i][j] = matrix[pivot_row][j];
+                matrix[pivot_row][j] = temp;
+            }
+        }
+        
+        // Normalize pivot row
+        poly_int pivot_val = mod_val(matrix[i][i], mod);
+        poly_int pivot_inv = mod_inverse(pivot_val, mod);
+        for (int j = i; j < cols; j++) {
+            matrix[i][j] = mod_val(matrix[i][j] * pivot_inv, mod);
+        }
+        
+        // Eliminate below and above
+        for (int r = 0; r < rows; r++) {
+            if (r != i) {
+                poly_int factor = matrix[r][i];
+                for (int j = i; j < cols; j++) {
+                    poly_int sub = mod_val(factor * matrix[i][j], mod);
+                    matrix[r][j] = mod_val(matrix[r][j] - sub, mod);
+                }
+            }
+        }
+    }
+    
+    // Extract solution
+    if (solution) {
+        for (int i = 0; i < rows; i++) {
+            solution[i] = matrix[i][cols - 1];
+        }
+    }
+    return 1;
+}
+
 void poly_print(const Poly *p) {
     if (p->degree == 0 && p->coeffs[0] == 0) {
         printf("0");

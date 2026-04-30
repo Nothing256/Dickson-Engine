@@ -60,12 +60,6 @@ def run_verification():
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             output = result.stdout
             
-            # Check for Degenerate Coset warning
-            if "Newton-Girard is non-invertible" in output or "Newton-Girard failed to invert k" in output:
-                print(f"  ⏭️  SKIP: Engine correctly detected algebraic singularity (Newton-Girard non-invertible for p={p}).")
-                skip_count += 1
-                continue
-                
             # Parse Factors
             factors = []
             parsing_factors = False

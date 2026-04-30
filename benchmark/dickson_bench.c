@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
         poly_int *T = dickson_v2_multidimensional_dispatch(engine, lifted, n);
         
         // --- Full Factorization Reconstruction ---
-        dickson_v2_reconstruct_factors(engine, T, n);
+        dickson_v2_reconstruct_factors(engine, T, n, lifted);
         
         free(T);
         poly_free(lifted);

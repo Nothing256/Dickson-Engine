@@ -25,7 +25,7 @@ Poly* dickson_v2_algebraic_lift(DicksonEngineV2 *engine, Poly *G_base, poly_int 
 poly_int* dickson_v2_multidimensional_dispatch(DicksonEngineV2 *engine, Poly *G_lifted, poly_int total_target_traces);
 
 // Full Factorization Reconstruction (MED Partitioning & Newton-Girard)
-void dickson_v2_reconstruct_factors(DicksonEngineV2 *engine, poly_int *T, poly_int n);
+void dickson_v2_reconstruct_factors(DicksonEngineV2 *engine, poly_int *T, poly_int n, Poly *G_lifted);
 
 // --- Dual-Mode Engine: Auto-Seeder ---
 // Finds a guaranteed primitive seed matrix/polynomial G(X) over F_p of degree m using strict Integrity Checks.
