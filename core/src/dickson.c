@@ -36,6 +36,11 @@ Poly* dickson_v2_algebraic_lift(DicksonEngineV2 *engine, Poly *G_base, poly_int 
     poly_int current_mod = engine->p;
     poly_int p = engine->p;
 
+    if (engine->e <= 1) {
+        printf("[Dickson Engine v2] Precision e=1, skipping algebraic lift.\n");
+        return G_lifted;
+    }
+
     // --- PRE-COMPUTATION (H_inv Caching) ---
     // Construct X^n - 1 to extract H_1(X) over F_p
     Poly *Xn_minus_1 = poly_create(n_val);
