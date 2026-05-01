@@ -428,8 +428,10 @@ Poly* dickson_v2_find_primitive_seed(DicksonEngineV2 *engine, poly_int n_val) {
         // G(X) = X^m + c_{m-1}X^{m-1} ... + c_0
         Poly *G = poly_create(engine->m);
         G->coeffs[engine->m] = 1;
-        // Constant term is (-1)^m for cyclotomic roots product (norm = 1)
-        G->coeffs[0] = (engine->m % 2 == 0) ? 1 : engine->p - 1;
+        // Constant term must be nonzero (irreducible poly cannot have 0 as root).
+        // For general n, the norm of roots can be any nonzero element in GF(p),
+        // so we randomize it instead of hardcoding (-1)^m (which only works for n=p+1).
+        G->coeffs[0] = 1 + (rand() % (engine->p - 1));
         
         for (int i = 1; i < engine->m; i++) {
             G->coeffs[i] = rand() % engine->p;

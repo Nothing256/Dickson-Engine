@@ -38,6 +38,7 @@ def run_verification():
         (2, 1, 7),     # Degenerate coset due to p <= m (m=3)
         (3, 1, 13),    # Base field GF(3)
         (5, 1, 31),    # Base field GF(5)
+        (5, 1, 12),    # MED degenerate cosets: n=2(p+1), non-trivial linear factors
         (197, 1, 39007), # Large base field
         
         # Lifted Rings (Z_{p^e})
