@@ -36,19 +36,40 @@ Poly* dickson_v2_algebraic_lift(DicksonEngineV2 *engine, Poly *G_base, poly_int 
     poly_int current_mod = engine->p;
     poly_int p = engine->p;
 
-    // Construct X^n - 1
+    // --- PRE-COMPUTATION (H_inv Caching) ---
+    // Construct X^n - 1 to extract H_1(X) over F_p
     Poly *Xn_minus_1 = poly_create(n_val);
     Xn_minus_1->coeffs[n_val] = 1;
     Xn_minus_1->coeffs[0] = -1;
 
+    Poly *H_1 = NULL;
+    Poly *R_0 = poly_div_rem(Xn_minus_1, G_base, &H_1, p);
+    poly_free(R_0); // R_0 should be 0 mod p, since G_base is a factor
+    
+    // Compute the universally reusable inverse H_inv(X) mod G_1(X) over F_p
+    Poly *H_inv = poly_mod_inverse(H_1, G_base, p);
+    poly_free(H_1);
+    poly_free(Xn_minus_1);
+
+    if (!H_inv) {
+        printf("[Dickson Engine v2] FATAL: H_1(X) is not invertible mod G_1(X). Lift failed.\n");
+        poly_free(G_lifted);
+        return NULL;
+    }
+
+    // --- FAST LIFTING LOOP ---
+    Poly *X_poly = poly_create(1);
+    X_poly->coeffs[1] = 1;
+
     for (int h = 1; h < engine->e; h++) {
         poly_int next_mod = current_mod * p;
-        printf(" -> Lifting locally to Z_{p^%d} (mod %lld) using remainder mapping...\n", h+1, next_mod);
+        // printf(" -> Lifting locally to Z_{p^%d} (mod %lld) using remainder mapping...\n", h+1, next_mod);
         
-        // 1. Divide X^n - 1 by G_h(X) over Z_{p^{h+1}}
-        // We need X^n-1 = Q(X)G_h(X) + R(X) mod next_mod
-        Poly *H_h = NULL;
-        Poly *R_h = poly_div_rem(Xn_minus_1, G_lifted, &H_h, next_mod);
+        // 1. Fast Remainder: X^n - 1 mod G_h(X) over Z_{p^{h+1}}
+        Poly *Xn_mod = poly_mod_pow(X_poly, n_val, G_lifted, next_mod);
+        Poly *R_h = poly_copy(Xn_mod);
+        R_h->coeffs[0] = mod_pos(R_h->coeffs[0] - 1, next_mod);
+        poly_free(Xn_mod);
         
         // 2. Extract E(X) = R_h(X) / p^h mod p
         Poly *E = poly_create(R_h->degree);
@@ -61,22 +82,12 @@ Poly* dickson_v2_algebraic_lift(DicksonEngineV2 *engine, Poly *G_base, poly_int 
             E->coeffs[i] = mod_pos(e_val, p);
         }
         
-        // 3. Compute [H_h(X)]^{-1} mod G_1(X) over F_p
-        // We use G_base since it's G_1(X)
-        Poly *H_inv = poly_mod_inverse(H_h, G_base, p);
-        if (!H_inv) {
-            printf("[Dickson Engine v2] FATAL: H(X) is not invertible mod G(X). Lift failed.\n");
-            poly_free(R_h);
-            poly_free(H_h);
-            poly_free(E);
-            break;
-        }
-        
-        // 4. Compute Delta G(X) = E(X) * H_inv(X) mod G_1(X) over F_p
+        // 3. Compute Delta G(X) = E(X) * H_inv(X) mod G_1(X) over F_p
+        // Notice we REUSE the cached H_inv here!
         Poly *E_mul_Hinv = poly_mul(E, H_inv, p);
         Poly *Delta_G = poly_div_rem(E_mul_Hinv, G_base, NULL, p);
         
-        // 5. Construct G_{h+1}(X) = G_h(X) + p^h * Delta_G(X) mod p^{h+1}
+        // 4. Construct G_{h+1}(X) = G_h(X) + p^h * Delta_G(X) mod p^{h+1}
         for (int i = 0; i <= Delta_G->degree && i <= G_lifted->degree; i++) {
             poly_int delta_val = mod_pos(Delta_G->coeffs[i], p);
             poly_int scaled_delta = mod_pos(delta_val * current_mod, next_mod);
@@ -84,16 +95,15 @@ Poly* dickson_v2_algebraic_lift(DicksonEngineV2 *engine, Poly *G_base, poly_int 
         }
         
         poly_free(R_h);
-        poly_free(H_h);
         poly_free(E);
-        poly_free(H_inv);
         poly_free(E_mul_Hinv);
         poly_free(Delta_G);
         
         current_mod = next_mod;
     }
 
-    poly_free(Xn_minus_1);
+    poly_free(X_poly);
+    poly_free(H_inv);
 
     printf("[Dickson Engine v2] Completed Homogeneous Algebraic Lift.\n");
     printf("Lifted Polynomial in Z_%lld: ", current_mod);
