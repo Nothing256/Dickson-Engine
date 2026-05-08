@@ -56,3 +56,10 @@ target_link_libraries(dickson_bench dickson_core)
 # --- [NEW] 5. Oxygen Tank Generator ---
 add_executable(oxy_tank benchmark/oxygen_tank_generator.c)
 target_link_libraries(oxy_tank dickson_core)
+
+# --- [NEW] 6. Dickson V3 — Universal Cyclotomic Factorizer (Ramified Regime) ---
+add_library(dickson_v3 STATIC core/src/dickson_v3.c)
+target_link_libraries(dickson_v3 dickson_core)
+
+add_executable(dickson_v3_test core/src/main_v3.c)
+target_link_libraries(dickson_v3_test dickson_v3 dickson_core)
