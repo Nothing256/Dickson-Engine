@@ -63,3 +63,7 @@ target_link_libraries(dickson_v3 dickson_core)
 
 add_executable(dickson_v3_test core/src/main_v3.c)
 target_link_libraries(dickson_v3_test dickson_v3 dickson_core)
+
+# V3 Benchmark Binary (for runner_v3_ramified.py)
+add_executable(dickson_v3_bench benchmark/dickson_v3_bench.c)
+target_link_libraries(dickson_v3_bench dickson_v3 dickson_core)
