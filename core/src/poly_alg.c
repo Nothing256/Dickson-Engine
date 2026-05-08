@@ -256,7 +256,8 @@ Poly* poly_mod_pow(const Poly *base, poly_int exp, const Poly *mod_poly, poly_in
 // We assume it's an augmented matrix where we want to solve Ax = b, so cols = rows + 1.
 // mod is p^e, p is the prime.
 int solve_linear_system(poly_int **matrix, int rows, int cols, poly_int mod, poly_int p, poly_int *solution) {
-    for (int i = 0; i < rows; i++) {
+    int num_vars = cols - 1;
+    for (int i = 0; i < num_vars; i++) {
         // Find pivot: must be coprime to p to be invertible
         int pivot_row = i;
         int found = 0;
@@ -303,7 +304,7 @@ int solve_linear_system(poly_int **matrix, int rows, int cols, poly_int mod, pol
     
     // Extract solution
     if (solution) {
-        for (int i = 0; i < rows; i++) {
+        for (int i = 0; i < num_vars; i++) {
             solution[i] = matrix[i][cols - 1];
         }
     }
