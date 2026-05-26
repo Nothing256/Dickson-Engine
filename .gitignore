@@ -6,3 +6,12 @@ __pycache__/
 *.exe
 .DS_Store
 benchmark/data/*.csv
+
+# Benchmark results (generated at runtime, not source)
+results/
+
+# Debug / temp files
+lldb_script.txt
+log_*.txt
+run_small_p.py
+run_test.sh
