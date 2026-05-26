@@ -8,7 +8,10 @@ RESULTS_DIR = "results"
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 def run_v1(p, e, n):
-    cmd = [DICKSON_CLI, str(p), str(e), str(n)]
+    # For fair comparison, we use a precomputed seed for p=30011.
+    # We found that T=5 gives a quadratic non-residue for p=30011.
+    # So we pass --full 5 --silent to bypass V1's auto-seeder.
+    cmd = [DICKSON_CLI, str(p), str(e), "--full", "5", "--silent"]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         time_match = re.search(r"Time Elapsed\s*:\s*(\d+\.\d+)", result.stdout)
