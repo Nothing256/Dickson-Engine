@@ -52,11 +52,17 @@ int main(int argc, char** argv) {
         seed = dickson_v2_find_primitive_seed(engine, n);
     }
     if (seed) {
+        double t1 = get_time();
         Poly *lifted = dickson_v2_algebraic_lift(engine, seed, n);
+        double t2 = get_time();
+        printf("Time algebraic_lift: %.6f\n", t2 - t1);
+        
         poly_int *T = dickson_v2_multidimensional_dispatch(engine, lifted, n);
+        double t3 = get_time();
+        printf("Time multidimensional_dispatch: %.6f\n", t3 - t2);
         
         // --- Full Factorization Reconstruction ---
-        dickson_v2_reconstruct_factors(engine, T, n, lifted);
+        // dickson_v2_reconstruct_factors(engine, T, n, lifted);
         
         free(T);
         poly_free(lifted);

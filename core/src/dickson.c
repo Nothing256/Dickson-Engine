@@ -168,10 +168,10 @@ poly_int* dickson_v2_multidimensional_dispatch(DicksonEngineV2 *engine, Poly *G_
         T[k] = next_T;
     }
 
-    printf("Generated Generalized Multi-dimensional Seed Traces:\n");
-    for (int k = 1; k <= total_target_traces; k++) {
-        printf(" Trace T[%d] = %lld\n", k, T[k]);
-    }
+    // printf("Generated Generalized Multi-dimensional Seed Traces:\n");
+    // for (int k = 1; k <= total_target_traces; k++) {
+    //     printf(" Trace T[%d] = %lld\n", k, T[k]);
+    // }
 
     free(A);
     return T;
