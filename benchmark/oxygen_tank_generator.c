@@ -105,8 +105,8 @@ int main() {
     fprintf(fp, "    }\n");
     printf("Generated precomputed seeds for p = %lld\n", target_p);
 
-    return seed;
-}
+    fprintf(fp, "    return seed;\n");
+    fprintf(fp, "}\n");
     fclose(fp);
     
     printf("Successfully wrote Oxygen Tank dictionary to core/src/primes_seeds.c.\n");
