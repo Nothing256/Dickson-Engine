@@ -12,6 +12,11 @@ V1 is specialized for m=2 (quadratic Dickson recurrence):
 """
 
 import time
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from poly_arith import format_poly, format_factorization
 
 
 def _binomial_coeff(n, k):
@@ -200,48 +205,61 @@ def dickson_v1_recover_a(p, e, s_final, a_base):
     return current_x % final_mod
 
 
-def dickson_v1_generate_traces(a1, n, mod):
+def dickson_v1_reconstruct_factors(p, e, a1):
     """
-    Generate Dickson trace sequence via the recurrence:
-        D_0 = 2
-        D_1 = A₁
-        D_i = A₁ * D_{i-1} - D_{i-2}  (mod final_mod)
+    Reconstruct all factors of X^(p+1) - 1 over Z_{p^e} from generator A₁.
 
-    Returns list of n+1 traces [D_0, D_1, ..., D_n].
+    V1 produces:
+      - (x - 1) and (x + 1)  (always)
+      - (x² + 1)             (only when p ≡ 3 mod 4)
+      - k pairs of quadratic factors via Dickson recurrence:
+          (x² - D_i·x + 1) and (x² + D_i·x + 1)  for i = 1..k
+
+    Returns list of factor polynomials as coefficient lists [a0, a1, ..., an].
     """
-    k = (n - 2) // 2  # number of pairs to generate
+    mod = p ** e
+    k = p // 4
 
-    D = [0] * (k + 1)
-    D[0] = a1  # D_1 = A₁
+    factors = []
 
-    d_prev = 2  # D_0
-    d_curr = a1  # D_1
+    # Fixed factors
+    factors.append([(mod - 1) % mod, 1])     # (x - 1)
+    factors.append([1, 1])                    # (x + 1)
+    if p % 4 == 3:
+        factors.append([1, 0, 1])             # (x² + 1)
+
+    # Dickson recurrence: D_1 = A₁, D_i = A₁·D_{i-1} - D_{i-2}
+    d_prev = 2
+    d_curr = a1
 
     for i in range(1, k + 1):
-        d_next = (a1 * d_curr - d_prev) % mod
-        D[i] = d_next
-        d_prev = d_curr
-        d_curr = d_next
+        neg_d = (mod - d_curr) % mod
+        factors.append([1, neg_d, 1])  # (x² - D_i·x + 1)
+        factors.append([1, d_curr, 1]) # (x² + D_i·x + 1)
 
-    return D
+        if i < k:
+            d_next = (a1 * d_curr - d_prev) % mod
+            d_prev = d_curr
+            d_curr = d_next
+
+    return factors
 
 
 def dickson_v1_full_pipeline(p, e, a_base):
     """
-    Run the complete V1 pipeline:
+    Run the complete V1 pipeline (end-to-end, matching SageMath's scope):
         1. Build V(x) coefficients
         2. Compute s_base = (2 - a_base²) mod p
         3. Lift s_base → s_final (mod p^e)
         4. Recover A₁ from s_final
-        5. Generate all traces
+        5. Reconstruct all factors via Dickson recurrence
 
-    Returns (elapsed_time, a1, trace_count).
+    Returns (elapsed_time, factors).
+    factors = list of coefficient lists [[a0, a1, ...], ...]
     The timer covers steps 2-5 (excluding V(x) construction, which is
     a one-time precomputation independent of e).
     """
     coeffs, k = dickson_v1_build_vx(p)
-    n = p + 1
-    final_mod = p ** e
 
     start = time.time()
 
@@ -255,11 +273,11 @@ def dickson_v1_full_pipeline(p, e, a_base):
     # Step 4: Recover A₁
     a1 = dickson_v1_recover_a(p, e, s_final, a_base)
 
-    # Step 5: Generate traces
-    traces = dickson_v1_generate_traces(a1, n, final_mod)
+    # Step 5: Reconstruct factors
+    factors = dickson_v1_reconstruct_factors(p, e, a1)
 
     elapsed = time.time() - start
-    return elapsed, a1, len(traces)
+    return elapsed, factors
 
 
 # --- Seed Finding (for precomputation) ---
@@ -282,13 +300,13 @@ def dickson_v1_find_seed(p):
 
 
 if __name__ == "__main__":
-    import sys
     if len(sys.argv) < 3:
         print("Usage: python3 dickson_v1.py <p> <e> [seed]")
         sys.exit(1)
 
     p = int(sys.argv[1])
     e = int(sys.argv[2])
+    mod = p ** e
 
     if len(sys.argv) >= 4:
         seed = int(sys.argv[3])
@@ -296,6 +314,7 @@ if __name__ == "__main__":
         seed = dickson_v1_find_seed(p)
         print(f"Auto-found seed: {seed}")
 
-    elapsed, a1, count = dickson_v1_full_pipeline(p, e, seed)
-    print(f"Time Elapsed : {elapsed:.6f}")
-    print(f"Trace Count  : {count}")
+    elapsed, factors = dickson_v1_full_pipeline(p, e, seed)
+    print(f"Time Elapsed  : {elapsed:.6f}")
+    print(f"Factor Count  : {len(factors)}")
+    print(f"Factorization : {format_factorization(factors, mod)}")

@@ -19,6 +19,7 @@ from poly_arith import (
     poly_add, poly_sub, poly_mul, poly_scalar_mul,
     poly_divmod, poly_mod, poly_mod_inverse, poly_mod_pow,
     poly_trim, poly_degree, int_mod_inverse,
+    format_poly, format_factorization,
 )
 
 
@@ -161,14 +162,102 @@ def dickson_v2_multidimensional_dispatch(p, e, m, G_lifted, total_target_traces)
     return T
 
 
+def dickson_v2_reconstruct_factors(p, e, m, T, n_val):
+    """
+    Reconstruct all irreducible factors of X^n - 1 over Z_{p^e}
+    from the trace array T using MED coset partitioning + Newton-Girard.
+
+    Algorithm:
+      1. Partition Z_n* into p-cyclotomic cosets
+      2. For each coset {i, ip, ip², ...} of size m_coset:
+         a. Extract MED-scaled traces from T
+         b. Apply Newton-Girard to recover elementary symmetric polynomials
+         c. Build the irreducible factor polynomial
+
+    Returns list of factor polynomials as coefficient lists.
+    """
+    final_mod = p ** e
+    factors = []
+
+    # (x - 1) corresponds to index 0
+    factors.append([(final_mod - 1) % final_mod, 1])
+
+    visited = [False] * n_val
+    visited[0] = True
+
+    for i in range(1, n_val):
+        if visited[i]:
+            continue
+
+        # Trace the p-cyclotomic coset
+        m_coset = 0
+        curr = i
+        while not visited[curr]:
+            visited[curr] = True
+            curr = (curr * p) % n_val
+            m_coset += 1
+
+        # MED trace extraction with scaling
+        scale = m // m_coset
+        scale_inv = int_mod_inverse(scale, final_mod)
+        if scale_inv is None:
+            # Degenerate coset (p | scale), use raw factor
+            factors.append([1] + [0] * (m_coset - 1) + [1])
+            continue
+
+        med_traces = [0] * (m_coset + 1)
+        for k in range(1, m_coset + 1):
+            idx = (i * k) % n_val
+            raw_trace = (m % final_mod) if idx == 0 else T[idx]
+            med_traces[k] = (raw_trace * scale_inv) % final_mod
+
+        # Newton-Girard: traces → elementary symmetric polynomials
+        e_sym = [0] * (m_coset + 1)
+        e_sym[0] = 1
+
+        reconstruct_ok = True
+        for k in range(1, m_coset + 1):
+            sum_val = 0
+            for j in range(1, k + 1):
+                term = (e_sym[k - j] * med_traces[j]) % final_mod
+                # sign pattern: j=1 → +, j=2 → -, j=3 → +, ...
+                if (j - 1) % 2 != 0:
+                    term = (-term) % final_mod
+                sum_val = (sum_val + term) % final_mod
+
+            k_inv = int_mod_inverse(k, final_mod)
+            if k_inv is None:
+                reconstruct_ok = False
+                break
+            e_sym[k] = (sum_val * k_inv) % final_mod
+
+        if not reconstruct_ok:
+            factors.append([1] + [0] * (m_coset - 1) + [1])
+            continue
+
+        # Build factor polynomial from e_sym
+        # f(x) = x^{m_coset} + Σ_{k=1}^{m_coset} (-1)^k · e_sym[k] · x^{m_coset-k}
+        factor_coeffs = [0] * (m_coset + 1)
+        factor_coeffs[m_coset] = 1  # monic: x^{m_coset}
+        for k in range(1, m_coset + 1):
+            sign = -1 if (k % 2 != 0) else 1
+            factor_coeffs[m_coset - k] = (sign * e_sym[k]) % final_mod
+
+        factors.append(factor_coeffs)
+
+    return factors
+
+
 def dickson_v2_full_pipeline(p, e, m, G_base, n_val):
     """
-    Run the complete V2 pipeline:
+    Run the complete V2 pipeline (end-to-end, matching SageMath's scope):
         1. Algebraic Lift: G_base (mod p) → G_lifted (mod p^e)
         2. Multidimensional Dispatch: extract n traces from G_lifted
+        3. Factor Reconstruction: MED + Newton-Girard
 
-    Returns (elapsed_time, trace_count).
-    Timer covers both stages (seed already provided).
+    Returns (elapsed_time, factors).
+    factors = list of coefficient lists [[a0, a1, ...], ...]
+    Timer covers all three stages (seed already provided).
     """
     start = time.time()
 
@@ -178,8 +267,11 @@ def dickson_v2_full_pipeline(p, e, m, G_base, n_val):
     # Stage 2: Trace Generation
     T = dickson_v2_multidimensional_dispatch(p, e, m, G_lifted, n_val)
 
+    # Stage 3: Factor Reconstruction
+    factors = dickson_v2_reconstruct_factors(p, e, m, T, n_val)
+
     elapsed = time.time() - start
-    return elapsed, len(T) - 1  # exclude T[0]
+    return elapsed, factors
 
 
 # --- Auto-Seeder ---
@@ -256,6 +348,7 @@ if __name__ == "__main__":
         print(f"No precomputed seed for p={p}, m={m}. Auto-searching...")
         seed = dickson_v2_find_primitive_seed(p, m, n)
 
-    elapsed, count = dickson_v2_full_pipeline(p, e, m, seed, n)
-    print(f"Time Elapsed : {elapsed:.6f}")
-    print(f"Trace Count  : {count}")
+    elapsed, factors = dickson_v2_full_pipeline(p, e, m, seed, n)
+    print(f"Time Elapsed  : {elapsed:.6f}")
+    print(f"Factor Count  : {len(factors)}")
+    print(f"Factorization : {format_factorization(factors, p**e)}")

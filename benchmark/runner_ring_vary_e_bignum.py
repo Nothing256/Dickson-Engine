@@ -27,7 +27,7 @@ TIMEOUT = 600  # 10 minutes per single run
 def run_v1(p, e, n, v1_seed, v1_coeffs, v1_k):
     """Run V1 pipeline. Returns elapsed time or None on failure."""
     try:
-        elapsed, _, _ = dickson_v1_full_pipeline(p, e, v1_seed)
+        elapsed, _ = dickson_v1_full_pipeline(p, e, v1_seed)
         return elapsed
     except Exception as ex:
         print(f"    V1 error: {ex}")

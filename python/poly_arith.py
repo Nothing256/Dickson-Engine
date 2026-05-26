@@ -182,3 +182,54 @@ def poly_mod_pow(base, exp, mod_poly, p):
         exp >>= 1
 
     return poly_trim(result)
+
+
+# --- Human-readable formatting (SageMath-style) ---
+
+def format_poly(coeffs, mod=None):
+    """
+    Format polynomial coefficients as a human-readable string.
+    coeffs = [a0, a1, ..., an]  (a_i is the coefficient of x^i)
+    If mod is given, coefficients > mod/2 are displayed as negative.
+    """
+    degree = len(coeffs) - 1
+    if degree < 0:
+        return "0"
+
+    parts = []
+    for i in range(degree, -1, -1):
+        c = coeffs[i]
+        if mod is not None:
+            c = c % mod
+            if c > mod // 2:
+                c = c - mod
+        if c == 0:
+            continue
+
+        abs_c = abs(c)
+        is_neg = c < 0
+
+        # Build term string (without sign)
+        if i == 0:
+            term = str(abs_c)
+        elif i == 1:
+            term = "x" if abs_c == 1 else f"{abs_c}*x"
+        else:
+            term = f"x^{i}" if abs_c == 1 else f"{abs_c}*x^{i}"
+
+        # Prepend sign
+        if not parts:  # first (leading) term
+            parts.append(f"-{term}" if is_neg else term)
+        else:
+            parts.append(f" - {term}" if is_neg else f" + {term}")
+
+    return "".join(parts) if parts else "0"
+
+
+def format_factorization(factors, mod=None):
+    """
+    Format a list of factor polynomials as a SageMath-style product string.
+    factors = list of coefficient lists [[a0,a1,...], ...]
+    Output: (x - 1) * (x + 1) * (x^2 + 4*x + 1) * ...
+    """
+    return " * ".join(f"({format_poly(f, mod)})" for f in factors)
