@@ -20,9 +20,9 @@ def run_v2(p, e, n):
         return None
 
 def main():
-    p = 30011
+    p = 3
     n = p + 1
-    e_values = [1, 10, 50, 100, 200, 300, 400, 500, 750, 1000]
+    e_values = [1, 5, 10, 15, 20, 25, 30, 35, 38]
     iterations = 10
     
     print(f"=== V2 Ring Lifting (Precomputed Seed): vary e, fixed p={p} ===")

@@ -11,7 +11,7 @@ def run_v1(p, e, n):
     # For fair comparison, we use a precomputed seed for p=30011.
     # We found that T=5 gives a quadratic non-residue for p=30011.
     # So we pass --full 5 --silent to bypass V1's auto-seeder.
-    cmd = [DICKSON_CLI, str(p), str(e), "--full", "5", "--silent"]
+    cmd = [DICKSON_CLI, str(p), str(e), "--full", "2", "--silent"]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         time_match = re.search(r"Time Elapsed\s*:\s*(\d+\.\d+)", result.stdout)
@@ -21,9 +21,9 @@ def run_v1(p, e, n):
         return None
 
 def main():
-    p = 30011
+    p = 3
     n = p + 1
-    e_values = [1, 10, 50, 100, 200, 300, 400, 500, 750, 1000]
+    e_values = [1, 5, 10, 15, 20, 25, 30, 35, 38]
     iterations = 10
     
     print(f"=== V1 Ring Lifting: vary e, fixed p={p} ===")
