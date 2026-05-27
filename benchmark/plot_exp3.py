@@ -2,7 +2,6 @@
 """
 Plot Exp3: Large-scale Ring Factorization Z_{30011^e} — V1 vs V2
 Reads: ring_vary_e_bignum.json (existing overnight data)
-Produces: ring_large_vary_e.png / .pdf
 """
 import json
 import os
@@ -11,9 +10,11 @@ import matplotlib.pyplot as plt
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
 def load_data(json_path):
     with open(json_path) as f:
         return json.load(f)
+
 
 def main():
     json_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(SCRIPT_DIR, 'ring_vary_e_bignum.json')
@@ -39,9 +40,9 @@ def main():
     fig, ax = plt.subplots(figsize=(12, 7))
 
     ax.plot(e_v1, v1_t, 'r-o', linewidth=2, markersize=8,
-            label=f'Dickson V1 (Scalar Lift) O(e·p)')
+            label=f'Dickson V1 (Scalar Lift)')
     ax.plot(e_v2, v2_t, 'b--s', linewidth=2, markersize=8,
-            label=f'Dickson V2 (Algebraic Lift) O(e·log p)')
+            label=f'Dickson V2 (Cofactor-Free Lift)')
 
     # Sage annotation (only had e=1)
     sage_e1 = data['e_values'].get('1', {}).get('sage')
@@ -58,7 +59,7 @@ def main():
     ax.set_yscale('log')
     ax.set_xlabel('Precision Level (e)', fontsize=12)
     ax.set_ylabel('Time Elapsed (seconds)', fontsize=12)
-    ax.set_title(f'Ring Factorization: $X^{{{p+1}}} - 1$ over $\\mathbb{{Z}}_{{{p}^e}}$ (End-to-End)',
+    ax.set_title(f'Ring Factorization: $X^{{{p+1}}} - 1$ over $\\mathbb{{Z}}_{{{p}^e}}$',
                  fontsize=14)
     ax.grid(True, linestyle='--', alpha=0.5)
     ax.legend(fontsize=12, loc='upper left')
@@ -82,6 +83,7 @@ def main():
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     print(f"Saved to {out_dir}/ring_large_vary_e.png/.pdf")
     plt.close()
+
 
 if __name__ == '__main__':
     main()
