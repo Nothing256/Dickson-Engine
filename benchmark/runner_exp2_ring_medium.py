@@ -50,10 +50,10 @@ def run_v1(p, e, seed):
         return None
 
 
-def run_v2(p, e, m, seed, n):
+def run_v2(p, e, seed, n):
     """Run V2 pipeline. Returns elapsed time or None on failure."""
     try:
-        elapsed, _ = dickson_v2_full_pipeline(p, e, m, seed, n)
+        elapsed, _ = dickson_v2_full_pipeline(p, e, seed, n)
         return elapsed
     except Exception as ex:
         print(f"    V2 error: {ex}")
@@ -89,7 +89,7 @@ def main():
     print(f"[INIT] V1 seed: A = {v1_seed}")
 
     print("[INIT] Finding V2 seed (auto-seeder)...")
-    v2_seed = dickson_v2_find_primitive_seed(P, M, N)
+    v2_seed = dickson_v2_find_primitive_seed(P, N)
     print(f"[INIT] V2 seed: G(x) = {v2_seed}")
 
     # ── Check Sage availability ─────────────────────────────────────────
@@ -136,7 +136,7 @@ def main():
         print(f"  [V2] Running {ITERATIONS} iterations...")
         v2_times = []
         for i in range(ITERATIONS):
-            t = run_v2(P, e, M, v2_seed, N)
+            t = run_v2(P, e, v2_seed, N)
             v2_times.append(t)
             status = f"{t:.4f}s" if t is not None else "FAILED"
             print(f"    e={e} V2 iter {i + 1}: {status}")

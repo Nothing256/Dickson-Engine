@@ -294,7 +294,7 @@ def dickson_v2_reconstruct_factors(p, e, m, T, n_val):
     return factors
 
 
-def dickson_v2_full_pipeline(p, e, m, G_base, n_val):
+def dickson_v2_full_pipeline(p, e, G_base, n_val):
     """
     Run the complete V2 pipeline (end-to-end, matching SageMath's scope):
         1. Algebraic Lift: G_base (mod p) → G_lifted (mod p^e)
@@ -308,6 +308,7 @@ def dickson_v2_full_pipeline(p, e, m, G_base, n_val):
     start = time.time()
 
     # Stage 1: Algebraic Lift
+    m = len(G_base) - 1
     G_lifted = dickson_v2_algebraic_lift(p, e, m, G_base, n_val)
 
     # Stage 2: Trace Generation
@@ -322,11 +323,20 @@ def dickson_v2_full_pipeline(p, e, m, G_base, n_val):
 
 # --- Auto-Seeder ---
 
-def dickson_v2_find_primitive_seed(p, m, n_val):
+def dickson_v2_find_primitive_seed(p, n_val):
     """
-    Find a primitive seed polynomial G(x) of degree m over F_p.
+    Find a primitive seed polynomial G(x) over F_p.
+    Computes m = ord_n(p) internally.
     Uses random search with integrity checks (O(log n) verification).
     """
+    m = 1
+    curr = p % n_val
+    while curr != 1 and m <= n_val:
+        curr = (curr * p) % n_val
+        m += 1
+    if m > n_val:
+        raise RuntimeError(f"Could not compute m for p={p}, n={n_val}")
+
     import random
 
     # Prime factorization of n_val
@@ -392,9 +402,9 @@ if __name__ == "__main__":
     seed = get_precomputed_seed(p, m)
     if seed is None:
         print(f"No precomputed seed for p={p}, m={m}. Auto-searching...")
-        seed = dickson_v2_find_primitive_seed(p, m, n)
+        seed = dickson_v2_find_primitive_seed(p, n)
 
-    elapsed, factors = dickson_v2_full_pipeline(p, e, m, seed, n)
+    elapsed, factors = dickson_v2_full_pipeline(p, e, seed, n)
     print(f"Time Elapsed  : {elapsed:.6f}")
     print(f"Factor Count  : {len(factors)}")
     print(f"Factorization : {format_factorization(factors, p**e)}")

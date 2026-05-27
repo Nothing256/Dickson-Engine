@@ -66,7 +66,7 @@ def bench_v2_precomputed(p, e, m, n, iteration):
         print(f"  p={p} V2(pre) iter {iteration}: no precomputed seed")
         return None
     t0 = time.perf_counter()
-    dickson_v2_full_pipeline(p, e, m, seed, n)
+    dickson_v2_full_pipeline(p, e, seed, n)
     elapsed = time.perf_counter() - t0
     print(f"  p={p} V2(pre) iter {iteration}: {elapsed:.4f}s")
     return elapsed
@@ -75,10 +75,10 @@ def bench_v2_precomputed(p, e, m, n, iteration):
 # ---------------------------------------------------------------------------
 # Contestant 2 — V2 (auto-seeder)
 # ---------------------------------------------------------------------------
-def bench_v2_auto(p, e, m, n, iteration):
+def bench_v2_auto(p, e, n, iteration):
     t0 = time.perf_counter()
-    seed = dickson_v2_find_primitive_seed(p, m, n)
-    dickson_v2_full_pipeline(p, e, m, seed, n)
+    seed = dickson_v2_find_primitive_seed(p, n)
+    dickson_v2_full_pipeline(p, e, seed, n)
     elapsed = time.perf_counter() - t0
     print(f"  p={p} V2(auto) iter {iteration}: {elapsed:.4f}s")
     return elapsed
@@ -169,25 +169,25 @@ def main():
         times_pre = []
         times_auto = []
         times_sage = []
-        times_sympy = []
+        
 
         for i in range(1, ITERATIONS + 1):
             times_pre.append(bench_v2_precomputed(p, e, m, n, i))
-            times_auto.append(bench_v2_auto(p, e, m, n, i))
+            times_auto.append(bench_v2_auto(p, e, n, i))
             times_sage.append(bench_sage(p, e, n, i))
-            times_sympy.append(bench_sympy(p, e, n, i))
+            
 
         results[str(p)] = {
             'v2_precomp': trimmed_mean(times_pre),
             'v2_auto':    trimmed_mean(times_auto),
             'sage':       trimmed_mean(times_sage),
-            'sympy':      trimmed_mean(times_sympy),
+            
         }
 
         print(f"  => means: pre={results[str(p)]['v2_precomp']}, "
               f"auto={results[str(p)]['v2_auto']}, "
               f"sage={results[str(p)]['sage']}, "
-              f"sympy={results[str(p)]['sympy']}")
+              "")
 
     # -----------------------------------------------------------------------
     # Save JSON
