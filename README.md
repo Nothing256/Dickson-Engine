@@ -95,14 +95,13 @@ When integrating the engine as a library, it delivers factorization results in t
 ```python
 import sys
 sys.path.append('./python')
-from dickson_v2 import dickson_v2_full_pipeline, get_precomputed_seed
+from dickson_v2 import dickson_v2_full_pipeline, dickson_v2_find_primitive_seed
 from poly_arith import format_factorization
 
 p, e, n = 13, 2, 14
-m = 2 # Multiplicative order of p mod n
 
-# 1. Fetch precomputed seed (or use Auto-Seeder: dickson_v2_find_primitive_seed)
-seed = get_precomputed_seed(p, m)
+# 1. Generate primitive seed (Auto-Seeder)
+seed = dickson_v2_find_primitive_seed(p, n)
 
 # 2. Execute V2 Pipeline
 elapsed, factors = dickson_v2_full_pipeline(p, e, seed, n)
