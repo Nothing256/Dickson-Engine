@@ -115,14 +115,21 @@ To prove that our trace sequence intrinsically holds the complete factorization 
 python3 benchmark/verify.py
 ```
 
-### 2. Triple Threat Benchmark (`runner_random_compare.py`)
+### 2. Comparative Benchmarks (Python Suite)
 
-A graphical benchmarking suite comparing the Dickson Engine (Auto-Seed & Precomputed) against the leading Number Theory Library (NTL).
+A graphical benchmarking suite comparing the pure Python Dickson V2 Engine against industrial-grade C-backed Computer Algebra Systems (SageMath and SymPy).
 
 ```bash
-python3 benchmark/runner_random_compare.py
+# Exp 1: Base field scaling (Fixed ord_n(p) = 3, varying p)
+python3 benchmark/runner_exp1_domain_vary_p.py
+
+# Exp 2: Medium ring scaling (Fixed p=101, varying e)
+python3 benchmark/runner_exp2_ring_medium.py
+
+# Exp 3: Massive ring limit testing (Fixed p=30011, varying e up to 1000)
+python3 benchmark/runner_exp3_ring_large.py
 ```
-*Renders a logarithmic performance graph in `benchmark/results/`, visually demonstrating the million-fold $O(p^4)$ vs $O(\log p)$ execution speedup.*
+*Outputs performance metrics and plots to `benchmark/results/`, visually demonstrating the up to 890x execution speedup of V2 over SageMath on large domains, and its unique capability to factor over massive composite rings.*
 
 
 
