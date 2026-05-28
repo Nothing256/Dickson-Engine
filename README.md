@@ -76,6 +76,42 @@ The Python engine is located in the `python/` directory and features comprehensi
 python3 benchmark/runner_exp3_ring_large.py
 ```
 
+#### General Usage & API
+
+The Python engine can be run directly from the command line to factor an arbitrary cyclotomic polynomial $X^n-1$ over $\mathbb{Z}_{p^e}$:
+
+```bash
+# Usage: python3 python/dickson_v2.py <p> <e> <n>
+# Example: Factor X^14 - 1 over Z_{169} (p=13, e=2, n=14)
+python3 python/dickson_v2.py 13 2 14
+```
+
+When integrating the engine as a library, it delivers factorization results in two distinct formats:
+
+1. **Machine-Readable API**: The core `dickson_v2_full_pipeline` returns a native Python `list` of coefficient lists (from lowest to highest degree), perfect for downstream programmatic consumption.
+2. **SageMath-Style String**: The utility `format_factorization` converts the coefficient arrays into a standard multiplied polynomial string (e.g., `(x^2 + 130x + 168) * ...`), visually identical to standard CAS output.
+
+**Example Python API Usage:**
+```python
+import sys
+sys.path.append('./python')
+from dickson_v2 import dickson_v2_full_pipeline, get_precomputed_seed
+from poly_arith import format_factorization
+
+p, e, n = 13, 2, 14
+m = 2 # Multiplicative order of p mod n
+
+# 1. Fetch precomputed seed (or use Auto-Seeder: dickson_v2_find_primitive_seed)
+seed = get_precomputed_seed(p, m)
+
+# 2. Execute V2 Pipeline
+elapsed, factors = dickson_v2_full_pipeline(p, e, seed, n)
+
+# 3. Output formats
+print("Raw API Output:", factors)
+print("SageMath Style:", format_factorization(factors, mod=p**e))
+```
+
 ## 🔧 Seed Management (Oxygen Tank)
 
 The engine features a **dual-mode** seeding architecture:
