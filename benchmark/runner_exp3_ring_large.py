@@ -33,10 +33,10 @@ def run_v1(p, e, n, v1_seed, v1_coeffs, v1_k):
         print(f"    V1 error: {ex}")
         return None
 
-def run_v2(p, e, m, seed, n):
+def run_v2(p, e, seed, n):
     """Run V2 pipeline. Returns elapsed time or None on failure."""
     try:
-        elapsed, _ = dickson_v2_full_pipeline(p, e, m, seed, n)
+        elapsed, _ = dickson_v2_full_pipeline(p, e, seed, n)
         return elapsed
     except Exception as ex:
         print(f"    V2 error: {ex}")
@@ -160,7 +160,7 @@ def main():
             print(f"  [V2] Running {ITERATIONS} iterations...")
             v2_times = []
             for i in range(ITERATIONS):
-                t = run_v2(P, e, M, v2_seed, N)
+                t = run_v2(P, e, v2_seed, N)
                 v2_times.append(t)
                 status = f"{t:.6f}s" if t is not None else "FAILED"
                 print(f"    iter {i+1}: {status}")

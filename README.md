@@ -31,11 +31,14 @@ The Dickson Engine is built to scale homomorphic and post-quantum cryptographic 
 - **Dual-Track Coefficient Reconstruction**: 
   - **Hyper-Track (Trace + Newton-Girard)**: $O(n \cdot m)$ complexity for standard fields where $p > m$.
   - **Armor-Track (Division-Free Quotient Ring Matrix Elimination)**: $O(n \cdot m \log n + n \cdot m^2)$ complexity for small characteristic singularities ($p \le m$), ensuring $100\%$ robustness without zero-divisor failures.
-- **Pure C99 Implementation**: Ultra-lightweight and highly optimized. No external math libraries required.
+- **Pure C99 Engine (Base Field / Small Rings)**: Ultra-lightweight and highly optimized. No external math libraries required. However, native C99 lacks arbitrary-precision arithmetic, limiting its capacity for extremely large precision depths ($e \gg 1$).
+- **Pure Python Engine (Large Rings / Bignum)**: A full implementation of the V1 and V2 engines in Python. Leveraging Python's native bignum support, this engine effortlessly handles cryptographically large rings (e.g., $e=1000$). Remarkably, the pure Python V2 engine outperforms industrial-grade C-backed libraries like SageMath and SymPy by orders of magnitude.
 
 ## 🚀 Quick Start
 
-### Compilation
+The Dickson Engine provides both a highly optimized C implementation for base fields and a pure Python implementation for massive ring lifting.
+
+### C Engine Compilation
 
 ```bash
 mkdir build && cd build
@@ -63,6 +66,15 @@ The core benchmark binary executes the Auto-Seeder, dynamically generates traces
 | `e` | Precision exponent ($e=1$ for $\mathbb{F}_p$, $e \ge 2$ for $\mathbb{Z}_{p^e}$) |
 | `n` | Cyclotomic order ($X^n - 1$), must satisfy $\gcd(n, p) = 1$ |
 | `--random` | Use the runtime Auto-Seeder instead of precomputed seeds |
+
+### Python Bignum Engine
+
+The Python engine is located in the `python/` directory and features comprehensive benchmarking scripts in `benchmark/`. To witness the V2 engine factor polynomials over massive rings (e.g., $\mathbb{Z}_{p^{1000}}$) and compare its performance against SymPy and SageMath:
+
+```bash
+# Run the large ring benchmark (e.g., p=30011, e up to 1000)
+python3 benchmark/runner_exp3_ring_large.py
+```
 
 ## 🔧 Seed Management (Oxygen Tank)
 
