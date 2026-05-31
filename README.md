@@ -18,21 +18,22 @@ The Dickson Engine is built to scale homomorphic and post-quantum cryptographic 
 | Version | Key Innovation | Repository Branch/Tag |
 |---------|----------------|------------------------|
 | **V1.0** (ISIT) | Introduced structural 1D approach via Dickson Polynomials for the $n=p+1$ singularity. | `[tag: v1.0-isit]` |
-| **V2.0** (Current) | General Multi-dimensional Recurrences, MED Partitions, and $O(\log n)$ Auto-Seeding bypass. | `[branch: main]` |
+| **V2.0** (Current) | General Multi-dimensional Recurrences, MED Partitions, Cofactor-Free Hensel Lift, and $O(m^3 \log p)$ Auto-Seeding. Grand total: $O(n + m^3 \log p + e \cdot m^2)$. | `[branch: main]` |
 
 > **Note:** The `main` branch tracks the cutting-edge **V2** engine. If you are looking to reproduce the legacy benchmark results and LCD code constructions from the **V1** paper, please checkout the `v1.0-isit` tag!
 
 ## ✨ Features
 
-- **Jacobian-Free Algebraic Lifting**: Lifts irreducible seed polynomials from $\mathbb{F}_p$ to $\mathbb{Z}_{p^e}$ using a structurally isolated remainder congruence $E(X) \equiv \Delta G(X) \cdot H(X) \pmod{G(X)}$, completely bypassing multivariable Jacobian matrix inversions.
-- **Trace Extraction (Power Sums)**: Reduces complex multi-dimensional roots to a pure 1-dimensional integer trace sequence using Newton-Girard identities.
-- **MED Coset Partitioning**: Extracts all irreducible factors by mathematically scaling and partitioning a single base trace sequence.
-- **O(log n) Auto-Seeding**: Dramatically drops the primitive seed search complexity from NTL's $O(p^4)$ to $O(m^2 \log n)$ via rapid cyclotomic norm checking.
+- **Grand Total Algebraic Complexity**: $O(n + m^3 \log p + e \cdot m^2)$ for the complete factorization of $X^n-1$ over $\mathbb{Z}_{p^e}$, where $n$ is the cyclotomic order, $m$ is the coset dimension, $p$ is the prime, and $e$ is the precision depth.
+- **Cofactor-Free Hensel Lifting**: Lifts a single irreducible seed polynomial from $\mathbb{F}_p$ to $\mathbb{Z}_{p^e}$ using a cached polynomial inverse $C(X) = [H(X)]^{-1} \bmod G_1(X)$ computed once over $\mathbb{F}_p$, achieving $O(m^2)$ cost per precision layer—completely bypassing multivariable Jacobian matrix inversions and cofactor updates.
+- **Trace Extraction (Power Sums)**: Reduces complex multi-dimensional roots to a pure 1-dimensional integer trace sequence using Newton-Girard identities and the Dickson LFSR recurrence.
+- **MED Coset Partitioning**: Extracts all irreducible factors by mathematically scaling and partitioning a single base trace sequence, with degenerate coset handling for mixed-degree decompositions.
+- **$O(m^3 \log p)$ Auto-Seeding**: Finds a primitive irreducible seed via randomized primitivity testing in $\mathbb{F}_{p^m}$, where each test requires $O(m \log p)$ multiplications at $O(m^2)$ cost each.
 - **Dual-Track Coefficient Reconstruction**: 
-  - **Hyper-Track (Trace + Newton-Girard)**: $O(n \cdot m)$ complexity for standard fields where $p > m$.
-  - **Armor-Track (Division-Free Quotient Ring Matrix Elimination)**: $O(n \cdot m \log n + n \cdot m^2)$ complexity for small characteristic singularities ($p \le m$), ensuring $100\%$ robustness without zero-divisor failures.
+  - **Primary Track (Newton-Girard)**: $O(m)$ per factor for standard fields where $p > m$.
+  - **Fallback Track (Quotient-Ring Gaussian Elimination)**: $O(m^2 \cdot m)$ per factor for small characteristic ($p \le m$), ensuring unconditional correctness without zero-divisor failures.
 - **Pure C99 Engine (Base Field / Small Rings)**: Ultra-lightweight and highly optimized. No external math libraries required. However, native C99 lacks arbitrary-precision arithmetic, limiting its capacity for extremely large precision depths ($e \gg 1$).
-- **Pure Python Engine (Large Rings / Bignum)**: A full implementation of the V1 and V2 engines in Python. Leveraging Python's native bignum support, this engine effortlessly handles cryptographically large rings (e.g., $e=1000$). Remarkably, the pure Python V2 engine outperforms industrial-grade C-backed libraries like SageMath and SymPy by orders of magnitude.
+- **Pure Python Engine (Large Rings / Bignum)**: A full implementation of the V1 and V2 engines in Python. Leveraging Python's native bignum support, this engine effortlessly handles cryptographically large rings (e.g., $e=1000$). Remarkably, the pure Python V2 engine outperforms industrial-grade C-backed libraries like SageMath and SymPy by orders of magnitude (445× over SageMath at $p=199$).
 
 ## 🚀 Quick Start
 
@@ -116,7 +117,7 @@ print("SageMath Style:", format_factorization(factors, mod=p**e))
 The engine features a **dual-mode** seeding architecture:
 
 1. **Precomputed Seeds** — A lookup table in `core/src/primes_seeds.c` provides pre-verified primitive irreducible polynomials for a curated set of primes. These enable instant startup with zero search overhead.
-2. **Runtime Auto-Seeder** (`--random`) — When a precomputed seed is unavailable (or `--random` is specified), the engine dynamically searches for a primitive seed using $O(\log n)$ cyclotomic integrity checks.
+2. **Runtime Auto-Seeder** (`--random`) — When a precomputed seed is unavailable (or `--random` is specified), the engine dynamically searches for a primitive seed via randomized primitivity testing with algebraic cost $O(m^3 \log p)$.
 
 ### Expanding the Seed Table
 

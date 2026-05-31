@@ -75,8 +75,8 @@ def main():
     sympy_t = [SYMPY_DATA[p] for p in p_sympy]
 
     # --- Main plot ---
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10), height_ratios=[3, 1])
-    fig.subplots_adjust(hspace=0.3)
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 12), height_ratios=[2, 1, 1])
+    fig.subplots_adjust(hspace=0.4)
 
     # Top: Time vs p (log scale)
     ax1.plot(p_v2_pre, v2_pre, 'b-s', linewidth=2, markersize=7,
@@ -97,33 +97,58 @@ def main():
                   fontsize=14)
     ax1.grid(True, linestyle='--', alpha=0.5)
 
-    # log(p) fit on V2 precomputed
+    # O(n) fit on V2 precomputed (where n = p^2 + p + 1)
     if len(p_v2_pre) >= 3:
-        log_p = [math.log2(p) for p in p_v2_pre]
-        log_p_arr = np.array(log_p)
+        n_vals = [p**2 + p + 1 for p in p_v2_pre]
+        n_arr = np.array(n_vals)
         v2_arr = np.array(v2_pre)
-        c_fit = np.sum(v2_arr * log_p_arr) / np.sum(log_p_arr ** 2)
+        # Least squares fit: t = c * n => c = sum(t * n) / sum(n^2)
+        c_fit = np.sum(v2_arr * n_arr) / np.sum(n_arr ** 2)
         p_fit = np.linspace(min(p_v2_pre), max(p_v2_pre), 100)
-        t_fit = c_fit * np.log2(p_fit)
+        n_fit = p_fit**2 + p_fit + 1
+        t_fit = c_fit * n_fit
         ax1.plot(p_fit, t_fit, 'k--', linewidth=1.5, alpha=0.5,
-                 label=f'Best fit: {c_fit:.4f} · log₂(p)')
+                 label=f'Best fit: $O(n)$ ($c \\cdot n$)')
 
     ax1.legend(fontsize=11, loc='upper left')
 
-    # Bottom: V2(precomp) time / log(p)
+    # Middle: Seed Discovery Time / log(p)
+    if len(p_v2_pre) > 0 and len(p_v2_auto) > 0:
+        # Match data points
+        seed_time = []
+        p_seed = []
+        for i, p in enumerate(p_v2_auto):
+            if p in p_v2_pre:
+                idx = p_v2_pre.index(p)
+                # Auto - Pre gives the seed discovery overhead
+                overhead = max(0, v2_auto[i] - v2_pre[idx])
+                seed_time.append(overhead)
+                p_seed.append(p)
+        
+        if len(p_seed) >= 3:
+            log_p_seed = [math.log2(p) for p in p_seed]
+            normalized_seed = [t / lp for t, lp in zip(seed_time, log_p_seed)]
+            ax2.plot(p_seed, normalized_seed, 'c--^', linewidth=2, markersize=7,
+                     label='(V2 Auto - Precomp) / log₂(p)')
+            
+            ax2.set_xlabel('Prime Characteristic (p)', fontsize=12)
+            ax2.set_ylabel('Time / log₂(p)', fontsize=12)
+            ax2.set_title(r'Seed Discovery Complexity: $O(\log p)$', fontsize=12)
+            ax2.grid(True, linestyle='--', alpha=0.5)
+            ax2.legend(fontsize=11)
+
+    # Bottom: Expansion Time / n
     if len(p_v2_pre) >= 3:
-        log_p = [math.log2(p) for p in p_v2_pre]
-        normalized = [t / lp for t, lp in zip(v2_pre, log_p)]
-
-        ax2.plot(p_v2_pre, normalized, 'b-s', linewidth=2, markersize=7,
-                 label='V2(precomp) / log₂(p)')
-
-        ax2.set_xlabel('Prime Characteristic (p)', fontsize=12)
-        ax2.set_ylabel('Time / log₂(p)', fontsize=12)
-        ax2.set_title('Complexity Verification: V2 Time Normalized by log₂(p)',
-                      fontsize=12)
-        ax2.grid(True, linestyle='--', alpha=0.5)
-        ax2.legend(fontsize=11)
+        n_vals = [p**2 + p + 1 for p in p_v2_pre]
+        normalized_pre = [t / n for t, n in zip(v2_pre, n_vals)]
+        ax3.plot(p_v2_pre, normalized_pre, 'b-s', linewidth=2, markersize=7,
+                 label='V2 Precomp / $n$')
+        
+        ax3.set_xlabel('Prime Characteristic (p)', fontsize=12)
+        ax3.set_ylabel('Time / $n$', fontsize=12)
+        ax3.set_title('Coefficient Expansion Complexity: $O(n)$ where $n=p^2+p+1$', fontsize=12)
+        ax3.grid(True, linestyle='--', alpha=0.5)
+        ax3.legend(fontsize=11)
 
     # Save
     for ext in ['png', 'pdf']:
