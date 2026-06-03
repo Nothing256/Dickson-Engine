@@ -1,8 +1,10 @@
 #include "../core/include/dickson.h"
 #include "../core/include/poly_alg.h"
+#include "../core/include/primes_seeds.h"
 #include <sys/time.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 double get_time() {
     struct timeval tv;
@@ -30,14 +32,37 @@ int main(int argc, char** argv) {
     
     DicksonEngineV2 *engine = dickson_v2_init(p, e, m);
     
+    int use_random = 0;
+    for (int i = 4; i < argc; i++) {
+        if (strcmp(argv[i], "--random") == 0) {
+            use_random = 1;
+        }
+    }
+    
     double start = get_time();
-    Poly *seed = dickson_v2_find_primitive_seed(engine, n);
+    Poly *seed = NULL;
+    if (!use_random) {
+        seed = get_precomputed_seed(p, m);
+        if (!seed) {
+            printf("Error: No precomputed seed found for p=%lld. Use --random to auto-seed.\n", p);
+            dickson_v2_free(engine);
+            return 1;
+        }
+    } else {
+        seed = dickson_v2_find_primitive_seed(engine, n);
+    }
     if (seed) {
+        double t1 = get_time();
         Poly *lifted = dickson_v2_algebraic_lift(engine, seed, n);
+        double t2 = get_time();
+        printf("Time algebraic_lift: %.6f\n", t2 - t1);
+        
         poly_int *T = dickson_v2_multidimensional_dispatch(engine, lifted, n);
+        double t3 = get_time();
+        printf("Time multidimensional_dispatch: %.6f\n", t3 - t2);
         
         // --- Full Factorization Reconstruction ---
-        dickson_v2_reconstruct_factors(engine, T, n, lifted);
+        // dickson_v2_reconstruct_factors(engine, T, n, lifted);
         
         free(T);
         poly_free(lifted);

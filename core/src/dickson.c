@@ -168,10 +168,10 @@ poly_int* dickson_v2_multidimensional_dispatch(DicksonEngineV2 *engine, Poly *G_
         T[k] = next_T;
     }
 
-    printf("Generated Generalized Multi-dimensional Seed Traces:\n");
-    for (int k = 1; k <= total_target_traces; k++) {
-        printf(" Trace T[%d] = %lld\n", k, T[k]);
-    }
+    // printf("Generated Generalized Multi-dimensional Seed Traces:\n");
+    // for (int k = 1; k <= total_target_traces; k++) {
+    //     printf(" Trace T[%d] = %lld\n", k, T[k]);
+    // }
 
     free(A);
     return T;
@@ -438,7 +438,7 @@ Poly* dickson_v2_find_primitive_seed(DicksonEngineV2 *engine, poly_int n_val) {
     Poly *X = poly_create(1);
     X->coeffs[1] = 1;
 
-    for (int attempt = 1; attempt <= 2000; attempt++) {
+    for (int attempt = 1; attempt <= 200000000; attempt++) {
         // 1. Generate Random Monic Polynomial G(X) of degree m
         // G(X) = X^m + c_{m-1}X^{m-1} ... + c_0
         Poly *G = poly_create(engine->m);

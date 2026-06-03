@@ -69,6 +69,42 @@ int main() {
         printf("Generated precomputed seeds for p = %lld\n", p);
     }
 
+    poly_int target_p = 30011;
+    fprintf(fp, "    if (p == %lld) {\n", target_p);
+
+    // For m = 2 (n = p + 1)
+    poly_int n2_target = target_p + 1;
+    DicksonEngineV2 *engine2_target = dickson_v2_init(target_p, 1, 2);
+    Poly *seed2_target = dickson_v2_find_primitive_seed(engine2_target, n2_target);
+    if (seed2_target) {
+        fprintf(fp, "        if (m == 2) {\n");
+        fprintf(fp, "            seed = poly_create(2);\n");
+        for (int i=0; i<=2; i++) {
+            fprintf(fp, "            seed->coeffs[%d] = %lld;\n", i, seed2_target->coeffs[i]);
+        }
+        fprintf(fp, "        }\n");
+        poly_free(seed2_target);
+    }
+    dickson_v2_free(engine2_target);
+
+    // For m = 3 (n = p^2 + p + 1)
+    poly_int n3_target = target_p*target_p + target_p + 1;
+    DicksonEngineV2 *engine3_target = dickson_v2_init(target_p, 1, 3);
+    Poly *seed3_target = dickson_v2_find_primitive_seed(engine3_target, n3_target);
+    if (seed3_target) {
+        fprintf(fp, "        if (m == 3) {\n");
+        fprintf(fp, "            seed = poly_create(3);\n");
+        for (int i=0; i<=3; i++) {
+            fprintf(fp, "            seed->coeffs[%d] = %lld;\n", i, seed3_target->coeffs[i]);
+        }
+        fprintf(fp, "        }\n");
+        poly_free(seed3_target);
+    }
+    dickson_v2_free(engine3_target);
+
+    fprintf(fp, "    }\n");
+    printf("Generated precomputed seeds for p = %lld\n", target_p);
+
     fprintf(fp, "    return seed;\n");
     fprintf(fp, "}\n");
     fclose(fp);

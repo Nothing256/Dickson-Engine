@@ -9,23 +9,35 @@ DICKSON_BIN = "build/bin/dickson_bench"
 RESULTS_DIR = "results"
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-def run_bench(executable, p, e=1, n=None, extra_args=None):
-    """Run benchmark and return elapsed time."""
+def run_bench(executable, p, e=1, n=None, extra_args=None, iterations=1):
+    """Run benchmark and return elapsed time (averaged over iterations)."""
     cmd = [executable, str(p), str(e)]
     if n is not None:
         cmd.append(str(n))
     if extra_args:
         cmd.extend(extra_args)
         
-    try:
-        # Redirect output to parse execution time
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        time_match = re.search(r"Time Elapsed\s*:\s*(\d+\.\d+)", result.stdout)
-        duration = float(time_match.group(1)) if time_match else 0.0
-        return duration
-    except subprocess.CalledProcessError as e:
-        print(f"Error running {executable} {' '.join(extra_args or [])} for p={p}:")
+    durations = []
+    for _ in range(iterations):
+        try:
+            # Redirect output to parse execution time
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            time_match = re.search(r"Time Elapsed\s*:\s*(\d+\.\d+)", result.stdout)
+            if time_match:
+                durations.append(float(time_match.group(1)))
+        except subprocess.CalledProcessError:
+            pass
+            
+    if not durations:
+        print(f"Error running {executable} {' '.join(extra_args or [])} for p={p}")
         return None
+        
+    if len(durations) >= 5:
+        # Drop highest and lowest to reduce noise
+        durations.remove(max(durations))
+        durations.remove(min(durations))
+        
+    return sum(durations) / len(durations)
 
 def run_triple_comparison():
     print("\n=========================================================")
@@ -51,21 +63,21 @@ def run_triple_comparison():
         print(f"  Testing p={p} (n={n_dimension})... ", end="", flush=True)
         
         # 1. NTL (Cap elevated to 200 to capture the 60+ second explosion)
-        if p <= 200: 
+        if p <= 200 and os.path.exists(NTL_BIN): 
             t_n = run_bench(NTL_BIN, p, e=1, n=n_dimension)
             time_n_str = f"{t_n:.4f}s" if t_n is not None else "CRASH"
             if t_n is not None:
                 times_ntl.append(t_n)
                 valid_primes_ntl.append(p)
         else:
-            time_n_str = "SKI (O(p^4))"
+            time_n_str = "SKIP NTL"
 
         # 2. Dickson V2 (Auto-Seeder)
-        t_d_auto = run_bench(DICKSON_BIN, p, e=1, n=n_dimension, extra_args=["--random"])
+        t_d_auto = run_bench(DICKSON_BIN, p, e=1, n=n_dimension, extra_args=["--random"], iterations=10)
         time_d_auto_str = f"{t_d_auto:.6f}s" if t_d_auto is not None else "CRASH"
         
         # 3. Dickson V2 (Precomputed Oxygen Tank)
-        t_d_pre = run_bench(DICKSON_BIN, p, e=1, n=n_dimension)
+        t_d_pre = run_bench(DICKSON_BIN, p, e=1, n=n_dimension, iterations=10)
         time_d_pre_str = f"{t_d_pre:.6f}s" if t_d_pre is not None else "CRASH/MISSING_SEED"
         
         if t_d_auto is not None and t_d_pre is not None:
@@ -77,11 +89,12 @@ def run_triple_comparison():
 
     # Plotting
     plt.figure(figsize=(12, 7))
-    plt.plot(valid_primes_ntl, times_ntl, 'r-o', linewidth=2, markersize=8, label='NTL (CanZass) O(p^4)')
+    if valid_primes_ntl:
+        plt.plot(valid_primes_ntl, times_ntl, 'r-o', linewidth=2, markersize=8, label='NTL (CanZass) O(p^4)')
     plt.plot(valid_primes_dickson, times_dickson_auto, 'b--s', linewidth=2, markersize=8, label='Dickson V2 (Auto-Seeder)')
     plt.plot(valid_primes_dickson, times_dickson_precomputed, 'g-^', linewidth=2, markersize=8, label='Dickson V2 (Precomputed Seed)')
     
-    plt.title('Triple Benchmark: NTL vs. Dickson Generative Paradigms', fontsize=14)
+    plt.title('Benchmark: Dickson Generative Paradigms', fontsize=14)
     plt.xlabel('Prime Characteristic (p)', fontsize=12)
     plt.ylabel('Time Elapsed (seconds)', fontsize=12)
     plt.grid(True, linestyle='--', alpha=0.7)
@@ -89,12 +102,12 @@ def run_triple_comparison():
     
     plt.yscale('log') 
     
-    save_path = os.path.join(RESULTS_DIR, "v2_triple_comparison.png")
+    save_path = os.path.join(RESULTS_DIR, "v2_comparison.png")
     plt.savefig(save_path)
-    print(f"\n[Success] Triple Comparison Graph saved to '{save_path}'")
+    print(f"\n[Success] Graph saved to '{save_path}'")
 
 if __name__ == "__main__":
-    if not os.path.exists(NTL_BIN) or not os.path.exists(DICKSON_BIN):
-        print("Error: Binaries not found. Please compile them first via 'make' in build/.")
+    if not os.path.exists(DICKSON_BIN):
+        print("Error: Dickson Binary not found. Please compile via 'make' in build/.")
     else:
         run_triple_comparison()
