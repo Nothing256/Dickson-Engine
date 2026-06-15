@@ -18,9 +18,10 @@ The Dickson Engine is built to scale homomorphic and post-quantum cryptographic 
 | Version | Key Innovation | Repository Branch/Tag |
 |---------|----------------|------------------------|
 | **V1.0** (ISIT) | Introduced structural 1D approach via Dickson Polynomials for the $n=p+1$ singularity. | `[tag: v1.0-isit]` |
-| **V2.0** (Current) | General Multi-dimensional Recurrences, MED Partitions, Cofactor-Free Hensel Lift, and $O(m^3 \log p)$ Auto-Seeding. Grand total: $O(n + m^3 \log p + e \cdot m^2)$. | `[branch: main]` |
+| **V2.0** (TIT) | General Multi-dimensional Recurrences, MED Partitions, Cofactor-Free Hensel Lift, and $O(m^3 \log p)$ Auto-Seeding. Grand total: $O(n + m^3 \log p + e \cdot m^2)$. | `[branch: main]` |
+| **V3.0** (FCNT) | **The Ramified Regime solved.** Cyclotomic Substitution Theorem enables complete factorization of $X^n-1$ over $\mathbb{Z}_{p^e}$ for *all* $n$, including $p \mid n$. No Newton polygons, no Montes algorithm. | `[branch: v3-ramified]` |
 
-> **Note:** The `main` branch tracks the cutting-edge **V2** engine. If you are looking to reproduce the legacy benchmark results and LCD code constructions from the **V1** paper, please checkout the `v1.0-isit` tag!
+> **Note:** The `main` branch tracks the **V2** engine (unramified case: $\gcd(n,p)=1$). For the **V3** engine that handles the ramified case ($p \mid n$), please checkout the `v3-ramified` branch!
 
 ## ✨ Features
 
@@ -174,9 +175,34 @@ python3 benchmark/runner_exp3_ring_large.py
 - [x] **Lifting**: Jacobian-Free Algebraic Seed Lift from $\mathbb{F}_p$ to $\mathbb{Z}_{p^e}$.
 - [x] **Reconstruction**: Full factor output via MED + Newton-Girard.
 - [x] **Verification**: MED Coset Trace Scaling & Sympy validation.
-- [ ] **The "Abyss"**: Resolving the non-coprime theoretical singularity when $p \mid n$.
+- [x] **The "Abyss" — RESOLVED ✅**: The non-coprime singularity ($p \mid n$) has been conquered by the Cyclotomic Substitution Theorem (V3). See the `v3-ramified` branch.
 - [x] **Small Characteristic**: Division-Free Multivariate Generation (Matrix-based) bypassing Newton-Girard singularities when $p \le m$.
 - [ ] **Parallelism**: Multi-threaded trace extraction (The "Wolf Pack" strategy).
+
+## 📖 Citation
+
+If you find the Dickson Engine useful in your research, we would greatly appreciate it if you could cite our papers:
+
+```bibtex
+@inproceedings{Wang2026ISIT,
+  author    = {Yongchao Wang and Yang Ding and Jiansheng Yang and Zhiqiu Huang},
+  title     = {Explicit Factorization of $x^{p+1}-1$ over $\mathbb{Z}_{p^e}$: A Structural Approach via Dickson Polynomials},
+  booktitle = {Proceedings of the 2026 IEEE International Symposium on Information Theory (ISIT)},
+  year      = {2026}
+}
+```
+
+```bibtex
+@misc{wang2026explicitfactorizationxp11mathbbzpe,
+  title     = {Explicit Factorization of $x^{p+1}-1$ over $\mathbb{Z}_{p^e}$: A Structural Approach via Dickson Polynomials},
+  author    = {Yongchao Wang and Yang Ding and Jiansheng Yang and Zhiqiu Huang},
+  year      = {2026},
+  eprint    = {2604.19038},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.IT},
+  url       = {https://arxiv.org/abs/2604.19038}
+}
+```
 
 ## 📄 License
 
