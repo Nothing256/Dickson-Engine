@@ -1,11 +1,12 @@
-# Dickson-Engine V2
+# Dickson-Engine V3 — The Ramified Regime
 
-**A Deterministic Multi-Dimensional Algebraic Engine for Factorization over $\mathbb{Z}_{p^e}$**
+**Complete Factorization of $X^n-1$ over $\mathbb{Z}_{p^e}$ for Arbitrary $n$, Including $p \mid n$**
 
-> A mathematical engine implementing the explicit factorization of cyclotomic polynomials via generalized Multi-Dimensional Dickson Recurrences and MED (Multiple Equal-Difference) cosets.
+> The V3 engine extends the Dickson Engine to conquer the "Abyss" — the non-coprime singularity where $p \mid n$. Using the Cyclotomic Substitution Theorem, it achieves closed-form factorization of the ramified regime without Newton polygons, Montes algorithms, or non-coprime Hensel lifting.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Build: CMake](https://img.shields.io/badge/Build-CMake-green.svg)](https://cmake.org/)
+[![Branch: v3-ramified](https://img.shields.io/badge/Branch-v3--ramified-orange.svg)](#)
 
 <p align="center">
   <img src="assets/Dickson-Engine-Banner.png" alt="Dickson-Engine Banner" width="800"/>
@@ -13,170 +14,161 @@
 
 ## 📚 Academic Lineage & Versions
 
-The Dickson Engine is built to scale homomorphic and post-quantum cryptographic primitives, evolving from the initial 1-dimensional recurrence equations to a complete multi-dimensional tensor-free algebraic framework.
+| Version | Key Innovation | Status | Repository Branch/Tag |
+|---------|----------------|--------|------------------------|
+| **V1.0** | Structural 1D approach via Dickson Polynomials for the $n=p+1$ singularity. | Published at ISIT 2026 | `[tag: v1.0-isit]` |
+| **V2.0** | Multi-dimensional Recurrences, MED Partitions, Cofactor-Free Hensel Lift. Unramified case ($\gcd(n,p)=1$). | Submitted to IEEE TIT | `[branch: main]` |
+| **V3.0** ⬅️ | **The Ramified Regime solved.** Cyclotomic Substitution Theorem for *all* $n$, including $p \mid n$. | Submitted to FCNT | `[branch: v3-ramified]` |
 
-| Version | Key Innovation | Repository Branch/Tag |
-|---------|----------------|------------------------|
-| **V1.0** (ISIT) | Introduced structural 1D approach via Dickson Polynomials for the $n=p+1$ singularity. | `[tag: v1.0-isit]` |
-| **V2.0** (Current) | General Multi-dimensional Recurrences, MED Partitions, Cofactor-Free Hensel Lift, and $O(m^3 \log p)$ Auto-Seeding. Grand total: $O(n + m^3 \log p + e \cdot m^2)$. | `[branch: main]` |
+> **You are on the `v3-ramified` branch.** This branch contains the V3 engine that handles the complete factorization including the ramified case. For the V2-only engine, see the `main` branch.
 
-> **Note:** The `main` branch tracks the cutting-edge **V2** engine. If you are looking to reproduce the legacy benchmark results and LCD code constructions from the **V1** paper, please checkout the `v1.0-isit` tag!
+## 🧠 What V3 Solves
 
-## ✨ Features
+When $p \mid n$, writing $n = p^k m$ with $\gcd(m,p)=1$:
 
-- **Grand Total Algebraic Complexity**: $O(n + m^3 \log p + e \cdot m^2)$ for the complete factorization of $X^n-1$ over $\mathbb{Z}_{p^e}$, where $n$ is the cyclotomic order, $m$ is the coset dimension, $p$ is the prime, and $e$ is the precision depth.
-- **Cofactor-Free Hensel Lifting**: Lifts a single irreducible seed polynomial from $\mathbb{F}_p$ to $\mathbb{Z}_{p^e}$ using a cached polynomial inverse $C(X) = [H(X)]^{-1} \bmod G_1(X)$ computed once over $\mathbb{F}_p$, achieving $O(m^2)$ cost per precision layer—completely bypassing multivariable Jacobian matrix inversions and cofactor updates.
-- **Trace Extraction (Power Sums)**: Reduces complex multi-dimensional roots to a pure 1-dimensional integer trace sequence using Newton-Girard identities and the Dickson LFSR recurrence.
-- **MED Coset Partitioning**: Extracts all irreducible factors by mathematically scaling and partitioning a single base trace sequence, with degenerate coset handling for mixed-degree decompositions.
-- **$O(m^3 \log p)$ Auto-Seeding**: Finds a primitive irreducible seed via randomized primitivity testing in $\mathbb{F}_{p^m}$, where each test requires $O(m \log p)$ multiplications at $O(m^2)$ cost each.
-- **Dual-Track Coefficient Reconstruction**: 
-  - **Primary Track (Newton-Girard)**: $O(m)$ per factor for standard fields where $p > m$.
-  - **Fallback Track (Quotient-Ring Gaussian Elimination)**: $O(m^2 \cdot m)$ per factor for small characteristic ($p \le m$), ensuring unconditional correctness without zero-divisor failures.
-- **Pure C99 Engine (Base Field / Small Rings)**: Ultra-lightweight and highly optimized. No external math libraries required. However, native C99 lacks arbitrary-precision arithmetic, limiting its capacity for extremely large precision depths ($e \gg 1$).
-- **Pure Python Engine (Large Rings / Bignum)**: A full implementation of the V1 and V2 engines in Python. Leveraging Python's native bignum support, this engine effortlessly handles cryptographically large rings (e.g., $e=1000$). Remarkably, the pure Python V2 engine outperforms industrial-grade C-backed libraries like SageMath and SymPy by orders of magnitude (445× over SageMath at $p=199$).
+$$X^n - 1 = X^{p^k m} - 1 \equiv (X^m - 1)^{p^k} \pmod{p}$$
+
+Every irreducible factor appears with multiplicity $p^k$, causing:
+- ❌ Standard Hensel lifting to **fail** (requires coprime factors)
+- ❌ SymPy to **crash** with `NotInvertible` (zero divisor)
+- ❌ SageMath to **crash** with `PrecisionError` (vanishing discriminant)
+
+The V3 engine solves this via the **Cyclotomic Substitution Theorem**: for each unramified factor $G_i(X)$ of $X^m-1$, the ramified factors are obtained by the closed-form formula:
+
+$$H_i^{(j)}(X) = \frac{G_i(X^{p^j})}{G_i(X^{p^{j-1}})}$$
+
+No Newton polygons. No Montes algorithm. Just polynomial substitution and exact division.
 
 ## 🚀 Quick Start
 
-The Dickson Engine provides both a highly optimized C implementation for base fields and a pure Python implementation for massive ring lifting.
+### V3 Python Engine
 
-### C Engine Compilation
-
-```bash
-mkdir build && cd build
-cmake ..
-make dickson_bench
-```
-
-### Usage
-
-The core benchmark binary executes the Auto-Seeder, dynamically generates traces, and outputs the full factorization of $X^n-1$ over $\mathbb{Z}_{p^e}$.
+The V3 engine can be run directly from the command line:
 
 ```bash
-# ./bin/dickson_bench <p> <e> <n> [--random]
-# Example: Factor X^14 - 1 over Z_{169} (p=13, e=2)
-./bin/dickson_bench 13 2 14 --random
+# Usage: python3 python/dickson_v3.py <p> <e> <n>
 
-# Example: Factor X^39007 - 1 over GF(197)
-./bin/dickson_bench 197 1 39007 --random
+# Example 1: Factor X^12 - 1 over Z_9 (p=3, e=2, n=12, ramified: 3 | 12)
+python3 python/dickson_v3.py 3 2 12
+
+# Example 2: Factor X^24 - 1 over Z_9 (p=3, e=2, n=24)
+python3 python/dickson_v3.py 3 2 24
+
+# Example 3: Factor X^6 - 1 over Z_8 (p=2, e=3, n=6)
+python3 python/dickson_v3.py 2 3 6
+
+# Example 4: Unramified case also works (p=13, e=2, n=14, gcd(14,13)=1)
+python3 python/dickson_v3.py 13 2 14
 ```
 
 **Parameters:**
 | Parameter | Description |
 |-----------|-------------|
-| `p` | Prime characteristic of the base field |
+| `p` | Prime characteristic |
 | `e` | Precision exponent ($e=1$ for $\mathbb{F}_p$, $e \ge 2$ for $\mathbb{Z}_{p^e}$) |
-| `n` | Cyclotomic order ($X^n - 1$), must satisfy $\gcd(n, p) = 1$ |
-| `--random` | Use the runtime Auto-Seeder instead of precomputed seeds |
+| `n` | Cyclotomic order ($X^n - 1$). **No restriction on $\gcd(n, p)$!** |
 
-### Python Bignum Engine
+### Python API Usage
 
-The Python engine is located in the `python/` directory and features comprehensive benchmarking scripts in `benchmark/`. To witness the V2 engine factor polynomials over massive rings (e.g., $\mathbb{Z}_{p^{1000}}$) and compare its performance against SymPy and SageMath:
-
-```bash
-# Run the large ring benchmark (e.g., p=30011, e up to 1000)
-python3 benchmark/runner_exp3_ring_large.py
-```
-
-#### General Usage & API
-
-The Python engine can be run directly from the command line to factor an arbitrary cyclotomic polynomial $X^n-1$ over $\mathbb{Z}_{p^e}$:
-
-```bash
-# Usage: python3 python/dickson_v2.py <p> <e> <n>
-# Example: Factor X^14 - 1 over Z_{169} (p=13, e=2, n=14)
-python3 python/dickson_v2.py 13 2 14
-```
-
-When integrating the engine as a library, it delivers factorization results in two distinct formats:
-
-1. **Machine-Readable API**: The core `dickson_v2_full_pipeline` returns a native Python `list` of coefficient lists (from lowest to highest degree), perfect for downstream programmatic consumption.
-2. **SageMath-Style String**: The utility `format_factorization` converts the coefficient arrays into a standard multiplied polynomial string (e.g., `(x^2 + 130x + 168) * ...`), visually identical to standard CAS output.
-
-**Example Python API Usage:**
 ```python
 import sys
 sys.path.append('./python')
-from dickson_v2 import dickson_v2_full_pipeline, dickson_v2_find_primitive_seed
+from dickson_v3 import dickson_v3_full_pipeline
 from poly_arith import format_factorization
 
-p, e, n = 13, 2, 14
+p, e, n = 3, 2, 12  # Ramified: 3 | 12
 
-# 1. Generate primitive seed (Auto-Seeder)
-seed = dickson_v2_find_primitive_seed(p, n)
+# Execute V3 Pipeline (handles both unramified and ramified automatically)
+elapsed, factors = dickson_v3_full_pipeline(p, e, n)
 
-# 2. Execute V2 Pipeline
-elapsed, factors = dickson_v2_full_pipeline(p, e, seed, n)
-
-# 3. Output formats
-print("Raw API Output:", factors)
-print("SageMath Style:", format_factorization(factors, mod=p**e))
+# Output
+print(f"Time: {elapsed:.6f}s")
+print(f"Factors: {len(factors)}")
+print(f"Result: {format_factorization(factors, mod=p**e)}")
 ```
 
-## 🔧 Seed Management (Oxygen Tank)
+### V2 Engine (Unramified Only)
 
-The engine features a **dual-mode** seeding architecture:
+The V2 engine is still available for unramified cases. See the [main branch README](https://github.com/Nothing256/Dickson-Engine/tree/main) for V2-specific documentation, including C engine compilation, seed management, and the full benchmark suite.
 
-1. **Precomputed Seeds** — A lookup table in `core/src/primes_seeds.c` provides pre-verified primitive irreducible polynomials for a curated set of primes. These enable instant startup with zero search overhead.
-2. **Runtime Auto-Seeder** (`--random`) — When a precomputed seed is unavailable (or `--random` is specified), the engine dynamically searches for a primitive seed via randomized primitivity testing with algebraic cost $O(m^3 \log p)$.
+## 🧪 V3 Benchmarks — Reproducing the Paper Results
 
-### Expanding the Seed Table
+### 1. Quick Benchmark: V3 vs SymPy (Ramified Crash Demo)
 
-The precomputed seed table ships with coverage for a selected set of primes ($p \le 200$ and select large primes). To expand the table for your own research needs:
+This script demonstrates V3's capability on ramified cases where SymPy crashes:
 
 ```bash
-# 1. Build the Oxygen Tank Generator
-cd build && make oxy_tank
-
-# 2. Edit the max_p parameter in benchmark/oxygen_tank_generator.c
-#    (line 29: poly_int max_p = 200; -> your desired upper bound)
-
-# 3. Run the generator to regenerate primes_seeds.c
-cd benchmark && ../build/bin/oxy_tank
-
-# 4. Rebuild the engine to link the expanded seed table
-cd ../build && make dickson_bench
+python3 benchmark/benchmark_v3_vs_sympy.py
 ```
 
-> **Tip:** On a powerful server, you can safely increase `max_p` to 10000+ to pre-generate a comprehensive seed arsenal. For primes not in the table, the `--random` Auto-Seeder will always work as a fallback.
+**Expected output:**
+```
+===================================================================
+       Dickson Engine V3 vs SymPy Benchmark (Ramified Cases)
+===================================================================
+n (p=3, e=2)    | Dickson V3 (Time)    | SymPy Built-in (Result)
+--------------------------------------------------------------------
+n = 12          | 0.000049s (6 factors) | CRASH: NotInvertible (...)
+n = 24          | 0.000048s (10 factors)| CRASH: NotInvertible (...)
+n = 36          | 0.000038s (9 factors) | CRASH: NotInvertible (...)
+n = 72          | 0.000055s (15 factors)| CRASH: NotInvertible (...)
+n = 108         | 0.000076s (12 factors)| CRASH: NotInvertible (...)
+```
 
-## 🧪 Advanced Verification & Benchmarks
+### 2. Full Benchmark Suite (Multi-Axis Sweep)
 
-Our rigorous mathematical framework provides independent verification and performance plotting.
-
-### 1. Algebraic Verification (`verify.py`)
-
-To prove that our trace sequence intrinsically holds the complete factorization of $X^n-1$, we run a symbolic validation using Sympy. This script reads the traces from the C engine, performs MED coset sampling, and mathematically verifies that the product of reconstructed factors equals $X^n-1$ over $GF(p)$.
+The comprehensive benchmark runner sweeps across multiple axes:
 
 ```bash
-python3 benchmark/verify.py
+python3 benchmark/runner_v3_ramified.py
 ```
 
-### 2. Comparative Benchmarks (Python Suite)
+This produces:
+- **Sweep A**: Fixed $p=3, e=2$, varying $n = 3m$ for increasing $m$ (scaling with order)
+- **Sweep B**: Fixed $n, e$, varying $p$ over small primes (scaling with prime)
+- **Plots**: Saved to `results/v3_bench_sweep_n.png` and `results/v3_bench_sweep_p.png`
+- **Data**: Saved to `results/v3_bench_data.csv`
 
-A graphical benchmarking suite comparing the pure Python Dickson V2 Engine against industrial-grade C-backed Computer Algebra Systems (SageMath and SymPy).
+### 3. Correctness Verification
 
-```bash
-# Exp 1: Base field scaling (Fixed ord_n(p) = 3, varying p)
-python3 benchmark/runner_exp1_domain_vary_p.py
+Every V3 factorization is self-verifying: the product of all output factors is checked against $X^n - 1 \pmod{p^e}$. This verification is built into the benchmark scripts.
 
-# Exp 2: Medium ring scaling (Fixed p=101, varying e)
-python3 benchmark/runner_exp2_ring_medium.py
-
-# Exp 3: Massive ring limit testing (Fixed p=30011, varying e up to 1000)
-python3 benchmark/runner_exp3_ring_large.py
-```
-*Outputs performance metrics and plots to `benchmark/results/`, visually demonstrating the up to 890x execution speedup of V2 over SageMath on large domains, and its unique capability to factor over massive composite rings.*
-
-
+## ✅ Roadmap
 
 - [x] **Core**: $m$-dimensional Generalized Recurrence Framework.
 - [x] **Seeding**: $O(\log n)$ cyclotomic integrity checks.
 - [x] **Lifting**: Jacobian-Free Algebraic Seed Lift from $\mathbb{F}_p$ to $\mathbb{Z}_{p^e}$.
 - [x] **Reconstruction**: Full factor output via MED + Newton-Girard.
 - [x] **Verification**: MED Coset Trace Scaling & Sympy validation.
-- [ ] **The "Abyss"**: Resolving the non-coprime theoretical singularity when $p \mid n$.
+- [x] **The "Abyss" — RESOLVED ✅**: The non-coprime singularity ($p \mid n$) has been conquered by the Cyclotomic Substitution Theorem (V3).
 - [x] **Small Characteristic**: Division-Free Multivariate Generation (Matrix-based) bypassing Newton-Girard singularities when $p \le m$.
 - [ ] **Parallelism**: Multi-threaded trace extraction (The "Wolf Pack" strategy).
+- [ ] **Finite Chain Rings**: Extend framework to Galois rings $\mathrm{GR}(p^e, r)$ and $\mathbb{F}_q[\mu]/(\mu^e)$.
+
+## 📖 Citation
+
+If you find the Dickson Engine useful in your research, we would greatly appreciate it if you could cite our papers:
+
+```bibtex
+@inproceedings{Wang2026ISIT,
+  author    = {Yongchao Wang and Yang Ding and Jiansheng Yang and Zhiqiu Huang},
+  title     = {Explicit Factorization of $x^{p+1}-1$ over $\mathbb{Z}_{p^e}$: A Structural Approach via Dickson Polynomials},
+  booktitle = {Proceedings of the 2026 IEEE International Symposium on Information Theory (ISIT)},
+  year      = {2026}
+}
+```
+
+```bibtex
+@misc{wang2026explicitfactorizationxp11mathbbzpe,
+  title     = {Explicit Factorization of $x^{p+1}-1$ over $\mathbb{Z}_{p^e}$: A Structural Approach via Dickson Polynomials},
+  author    = {Yongchao Wang and Yang Ding and Jiansheng Yang and Zhiqiu Huang},
+  year      = {2026},
+  eprint    = {2604.19038},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.IT},
+  url       = {https://arxiv.org/abs/2604.19038}
+}
+```
 
 ## 📄 License
 
