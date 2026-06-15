@@ -18,8 +18,8 @@ The Dickson Engine is built to scale homomorphic and post-quantum cryptographic 
 | Version | Key Innovation | Repository Branch/Tag |
 |---------|----------------|------------------------|
 | **V1.0** (ISIT) | Introduced structural 1D approach via Dickson Polynomials for the $n=p+1$ singularity. | `[tag: v1.0-isit]` |
-| **V2.0** (TIT) | General Multi-dimensional Recurrences, MED Partitions, Cofactor-Free Hensel Lift, and $O(m^3 \log p)$ Auto-Seeding. Grand total: $O(n + m^3 \log p + e \cdot m^2)$. | `[branch: main]` |
-| **V3.0** (FCNT) | **The Ramified Regime solved.** Cyclotomic Substitution Theorem enables complete factorization of $X^n-1$ over $\mathbb{Z}_{p^e}$ for *all* $n$, including $p \mid n$. No Newton polygons, no Montes algorithm. | `[branch: v3-ramified]` |
+| **V2.0** (submitted to TIT) | General Multi-dimensional Recurrences, MED Partitions, Cofactor-Free Hensel Lift, and $O(m^3 \log p)$ Auto-Seeding. Grand total: $O(n + m^3 \log p + e \cdot m^2)$. | `[branch: main]` |
+| **V3.0** (submitted to FCNT) | **The Ramified Regime solved.** Cyclotomic Substitution Theorem enables complete factorization of $X^n-1$ over $\mathbb{Z}_{p^e}$ for *all* $n$, including $p \mid n$. No Newton polygons, no Montes algorithm. | `[branch: v3-ramified]` |
 
 > **Note:** The `main` branch tracks the **V2** engine (unramified case: $\gcd(n,p)=1$). For the **V3** engine that handles the ramified case ($p \mid n$), please checkout the `v3-ramified` branch!
 
