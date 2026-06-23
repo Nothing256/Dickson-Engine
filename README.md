@@ -17,9 +17,9 @@ The Dickson Engine is built to scale homomorphic and post-quantum cryptographic 
 
 | Version | Key Innovation | Repository Branch/Tag |
 |---------|----------------|------------------------|
-| **V1.0** (ISIT) | Introduced structural 1D approach via Dickson Polynomials for the $n=p+1$ singularity. | `[tag: v1.0-isit]` |
-| **V2.0** (submitted to TIT) | General Multi-dimensional Recurrences, MED Partitions, Cofactor-Free Hensel Lift, and $O(m^3 \log p)$ Auto-Seeding. Grand total: $O(n + m^3 \log p + e \cdot m^2)$. | `[branch: main]` |
-| **V3.0** (submitted to FCNT) | **The Ramified Regime solved.** Cyclotomic Substitution Theorem enables complete factorization of $X^n-1$ over $\mathbb{Z}_{p^e}$ for *all* $n$, including $p \mid n$. No Newton polygons, no Montes algorithm. | `[branch: v3-ramified]` |
+| **V1.0** (ISIT 2026) | Introduced structural 1D approach via Dickson Polynomials for the $n=p+1$ singularity. | `[tag: v1.0-isit]` |
+| **V2.0** ([arXiv:2606.20633](https://arxiv.org/abs/2606.20633), Under Review) | General Multi-dimensional Recurrences, MED Partitions, Cofactor-Free Hensel Lift, and $O(m^3 \log p)$ Auto-Seeding. Grand total: $O(n + m^3 \log p + e \cdot m^2)$. | `[branch: main]` |
+| **V3.0** (Under Review) | **The Ramified Regime solved.** Cyclotomic Substitution Theorem enables complete factorization of $X^n-1$ over $\mathbb{Z}_{p^e}$ for *all* $n$, including $p \mid n$. No Newton polygons, no Montes algorithm. | `[branch: v3-ramified]` |
 
 > **Note:** The `main` branch tracks the **V2** engine (unramified case: $\gcd(n,p)=1$). For the **V3** engine that handles the ramified case ($p \mid n$), please checkout the `v3-ramified` branch!
 
@@ -183,8 +183,9 @@ python3 benchmark/runner_exp3_ring_large.py
 
 If you find the Dickson Engine useful in your research, we would greatly appreciate it if you could cite our papers:
 
+**Dickson Engine V1** (ISIT 2026 — Published):
 ```bibtex
-@inproceedings{Wang2026ISIT,
+@inproceedings{DicksonEngineV1,
   author    = {Yongchao Wang and Yang Ding and Jiansheng Yang and Zhiqiu Huang},
   title     = {Explicit Factorization of $x^{p+1}-1$ over $\mathbb{Z}_{p^e}$: A Structural Approach via Dickson Polynomials},
   booktitle = {Proceedings of the 2026 IEEE International Symposium on Information Theory (ISIT)},
@@ -192,15 +193,26 @@ If you find the Dickson Engine useful in your research, we would greatly appreci
 }
 ```
 
+**Dickson Engine V2** (arXiv:2606.20633 — Under Review):
 ```bibtex
-@misc{wang2026explicitfactorizationxp11mathbbzpe,
-  title     = {Explicit Factorization of $x^{p+1}-1$ over $\mathbb{Z}_{p^e}$: A Structural Approach via Dickson Polynomials},
+@misc{DicksonEngineV2,
+  title     = {Explicit Factorization of $X^n-1$ over $\mathbb{Z}_{p^e}$ via Cofactor-Free Single-Seed Hensel Lifting},
   author    = {Yongchao Wang and Yang Ding and Jiansheng Yang and Zhiqiu Huang},
   year      = {2026},
-  eprint    = {2604.19038},
+  eprint    = {2606.20633},
   archivePrefix = {arXiv},
-  primaryClass  = {cs.IT},
-  url       = {https://arxiv.org/abs/2604.19038}
+  primaryClass  = {cs.SC},
+  url       = {https://arxiv.org/abs/2606.20633}
+}
+```
+
+**Dickson Engine V3** (Under Review):
+```bibtex
+@article{DicksonEngineV3,
+  author    = {Yongchao Wang and Yang Ding and Jiansheng Yang and Zhiqiu Huang},
+  title     = {Complete Factorization of $X^n-1$ over $\mathbb{Z}_{p^e}$ for Arbitrary $n$: The Ramified Regime via Cyclotomic Substitution},
+  year      = {2026},
+  note      = {Under Review}
 }
 ```
 
