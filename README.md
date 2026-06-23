@@ -17,8 +17,8 @@
 | Version | Key Innovation | Status | Repository Branch/Tag |
 |---------|----------------|--------|------------------------|
 | **V1.0** | Structural 1D approach via Dickson Polynomials for the $n=p+1$ singularity. | Published at ISIT 2026 | `[tag: v1.0-isit]` |
-| **V2.0** | Multi-dimensional Recurrences, MED Partitions, Cofactor-Free Hensel Lift. Unramified case ($\gcd(n,p)=1$). | Submitted to IEEE TIT | `[branch: main]` |
-| **V3.0** ⬅️ | **The Ramified Regime solved.** Cyclotomic Substitution Theorem for *all* $n$, including $p \mid n$. | Submitted to FCNT | `[branch: v3-ramified]` |
+| **V2.0** | Multi-dimensional Recurrences, MED Partitions, Cofactor-Free Hensel Lift. Unramified case ($\gcd(n,p)=1$). | [arXiv:2606.20633](https://arxiv.org/abs/2606.20633), Under Review | `[branch: main]` |
+| **V3.0** ⬅️ | **The Ramified Regime solved.** Cyclotomic Substitution Theorem for *all* $n$, including $p \mid n$. | Under Review | `[branch: v3-ramified]` |
 
 > **You are on the `v3-ramified` branch.** This branch contains the V3 engine that handles the complete factorization including the ramified case. For the V2-only engine, see the `main` branch.
 
@@ -149,8 +149,9 @@ Every V3 factorization is self-verifying: the product of all output factors is c
 
 If you find the Dickson Engine useful in your research, we would greatly appreciate it if you could cite our papers:
 
+**Dickson Engine V1** (ISIT 2026 — Published):
 ```bibtex
-@inproceedings{Wang2026ISIT,
+@inproceedings{DicksonEngineV1,
   author    = {Yongchao Wang and Yang Ding and Jiansheng Yang and Zhiqiu Huang},
   title     = {Explicit Factorization of $x^{p+1}-1$ over $\mathbb{Z}_{p^e}$: A Structural Approach via Dickson Polynomials},
   booktitle = {Proceedings of the 2026 IEEE International Symposium on Information Theory (ISIT)},
@@ -158,15 +159,26 @@ If you find the Dickson Engine useful in your research, we would greatly appreci
 }
 ```
 
+**Dickson Engine V2** (arXiv:2606.20633 — Under Review):
 ```bibtex
-@misc{wang2026explicitfactorizationxp11mathbbzpe,
-  title     = {Explicit Factorization of $x^{p+1}-1$ over $\mathbb{Z}_{p^e}$: A Structural Approach via Dickson Polynomials},
+@misc{DicksonEngineV2,
+  title     = {Explicit Factorization of $X^n-1$ over $\mathbb{Z}_{p^e}$ via Cofactor-Free Single-Seed Hensel Lifting},
   author    = {Yongchao Wang and Yang Ding and Jiansheng Yang and Zhiqiu Huang},
   year      = {2026},
-  eprint    = {2604.19038},
+  eprint    = {2606.20633},
   archivePrefix = {arXiv},
-  primaryClass  = {cs.IT},
-  url       = {https://arxiv.org/abs/2604.19038}
+  primaryClass  = {cs.SC},
+  url       = {https://arxiv.org/abs/2606.20633}
+}
+```
+
+**Dickson Engine V3** (Under Review):
+```bibtex
+@article{DicksonEngineV3,
+  author    = {Yongchao Wang and Yang Ding and Jiansheng Yang and Zhiqiu Huang},
+  title     = {Complete Factorization of $X^n-1$ over $\mathbb{Z}_{p^e}$ for Arbitrary $n$: The Ramified Regime via Cyclotomic Substitution},
+  year      = {2026},
+  note      = {Under Review}
 }
 ```
 
