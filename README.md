@@ -159,6 +159,19 @@ If you find the Dickson Engine useful in your research, we would greatly appreci
 }
 ```
 
+**Dickson Engine V1 — Extended Version** (arXiv:2604.19038):
+```bibtex
+@misc{DicksonEngineV1ext,
+  title     = {Explicit Factorization of $x^{p+1}-1$ over $\mathbb{Z}_{p^e}$: A Structural Approach via Dickson Polynomials},
+  author    = {Yongchao Wang and Yang Ding and Jiansheng Yang and Zhiqiu Huang},
+  year      = {2026},
+  eprint    = {2604.19038},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.IT},
+  url       = {https://arxiv.org/abs/2604.19038}
+}
+```
+
 **Dickson Engine V2** (arXiv:2606.20633 — Under Review):
 ```bibtex
 @misc{DicksonEngineV2,
